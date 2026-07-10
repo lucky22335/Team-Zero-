@@ -1,0 +1,420 @@
+{
+  "users": [
+    {
+      "id": "user_1783323049412",
+      "username": "hackererror094@gmail.com",
+      "email": "hackererror094@gmail.com",
+      "password": "1Q2w3e4@",
+      "botConfig": {
+        "token": "8803399056:AAE94FPHf3QdWGeaSGa1f5o0UxDcaekf9lI",
+        "groupId": "-1004490578723",
+        "ownerChatId": "8940956419",
+        "botLink": "",
+        "otpGroupUrl": "",
+        "status": "active",
+        "btn1Text": "",
+        "btn1Url": "",
+        "btn2Text": "",
+        "btn2Url": "",
+        "btn3Text": "",
+        "btn3Url": "",
+        "whatsappEnabled": false,
+        "whatsappNewsletter": "",
+        "whatsappNumberChannel": "",
+        "whatsappMainChannel": "",
+        "whatsappPoweredBy": "",
+        "whatsappPhone": "923023553868",
+        "whatsappStatus": "offline"
+      },
+      "subscribers": [
+        {
+          "chatId": 8940956419,
+          "username": "teamzero586",
+          "firstName": "Rana",
+          "registeredAt": "2026-07-06T07:52:28.119Z",
+          "numbers": []
+        },
+        {
+          "chatId": -1004490578723,
+          "username": "teamzero586",
+          "firstName": "Rana",
+          "registeredAt": "2026-07-10T12:28:05.608Z",
+          "numbers": []
+        }
+      ],
+      "otpHistory": [
+        {
+          "timestamp": "2026-07-10T12:33:57.000Z",
+          "number": "263788209290",
+          "service": "Telegram",
+          "message": "Telegram code 75963nnYou can also tap on this link to log innhttpstmelogin75963nnO2P2zjBpJ",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:10:46.000Z",
+          "number": "263786791544",
+          "service": "Rednote",
+          "message": "ÄrednoteÑ Your verification code is 179742 for login via phone number valid for 5 mins Do not share it with anyone",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:12:44.000Z",
+          "number": "263784709295",
+          "service": "Rednote",
+          "message": "ÄrednoteÑ Your verification code is 165855 for login via phone number valid for 5 mins Do not share it with anyone",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:37:34.000Z",
+          "number": "967773948023",
+          "service": "Imo",
+          "message": "Your imo verification code is 7353nDO NOT share with anyone else to prevent account being compromised",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:40:24.000Z",
+          "number": "967772590567",
+          "service": "Imo",
+          "message": "Your imo verification code is 1524nDO NOT share with anyone else to prevent account being compromised",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:42:31.000Z",
+          "number": "967774525696",
+          "service": "Imo",
+          "message": "imo verification code 0521nNever share this code with anyone",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:46:20.000Z",
+          "number": "967778319490",
+          "service": "Imo",
+          "message": "Your imo verification code is 0945nDO NOT share with anyone else to prevent account being compromised",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:47:25.000Z",
+          "number": "967773663808",
+          "service": "Imo",
+          "message": "imo verification code 7503nNever share this code with anyone",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T11:55:12.000Z",
+          "number": "263778732702",
+          "service": "Airlink",
+          "message": "you better",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T12:00:58.000Z",
+          "number": "263782385087",
+          "service": "ACCA1",
+          "message": "Study Hub is ACCAs online tuition programme Book your Applied Skills resit course for September 2026 now httpsbitly4h9iLiy",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-10T12:01:10.000Z",
+          "number": "263784709312",
+          "service": "ACCA1",
+          "message": "Study Hub is ACCAs online tuition programme Book your Applied Skills resit course for September 2026 now httpsbitly4h9iLiy",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:35:26.000Z",
+          "number": "263775874162",
+          "service": "Telegram",
+          "message": "Telegram code 27737nnYou can also tap on this link to log innhttpstmelogin27737nnO2P2zjBpJ",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:32:22.000Z",
+          "number": "263783750412",
+          "service": "Rednote",
+          "message": "ÄrednoteÑ Your verification code is 196033 for login via phone number valid for 5 mins Do not share it with anyone",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:29:52.000Z",
+          "number": "263781026384",
+          "service": "Rednote",
+          "message": "ÄrednoteÑ Your verification code is 102970 for login via phone number valid for 5 mins Do not share it with anyone",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:02:49.000Z",
+          "number": "263776117770",
+          "service": "Imo",
+          "message": "رمز التحقق 3335nتجنب مطلقًا مشاركته مع أي شخص آخر",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:04:22.000Z",
+          "number": "263778853837",
+          "service": "Imo",
+          "message": "# Your imo verification code is 1883nDO NOT share with anyone else to prevent account being compromisednW5EUe21Qadh",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:09:18.000Z",
+          "number": "263784085722",
+          "service": "Imo",
+          "message": "# Your imo verification code is 5000nDO NOT share with anyone else to prevent account being compromisednW5EUe21Qadh",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:12:04.000Z",
+          "number": "967771846185",
+          "service": "Imo",
+          "message": "Your imo verification code is 3563nDO NOT share with anyone else to prevent account being compromised",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:13:35.000Z",
+          "number": "263781170219",
+          "service": "Cotral",
+          "message": "Ciao il tuo codice OTP   2204 Non condividerlo con nessuno Cotral",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:14:17.000Z",
+          "number": "263789255687",
+          "service": "Notify",
+          "message": "رمز التحقق 3155nتجنب مطلقًا مشاركته مع أي شخص آخر",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:15:36.000Z",
+          "number": "967771175376",
+          "service": "Imo",
+          "message": "imo verification code 8942nNever share this code with anyone",
+          "country": "Yemen",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:16:57.000Z",
+          "number": "263777837167",
+          "service": "Imo",
+          "message": "# Your imo verification code is 2045nDO NOT share with anyone else to prevent account being compromisednW5EUe21Qadh",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:22:11.000Z",
+          "number": "263783985795",
+          "service": "Notify",
+          "message": "رمز التحقق 0714nتجنب مطلقًا مشاركته مع أي شخص آخر",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        },
+        {
+          "timestamp": "2026-07-08T10:28:17.000Z",
+          "number": "263775138480",
+          "service": "Telegram",
+          "message": "Telegram code 44241nnYou can also tap on this link to log innhttpstmelogin44241nnO2P2zjBpJ",
+          "country": "Zimbabwe",
+          "source": "API 2"
+        }
+      ],
+      "whatsappHistory": []
+    }
+  ],
+  "claimedNumbers": [
+    "584164303299",
+    "584264492467",
+    "992784210361",
+    "263775138480",
+    "263783985795",
+    "263777837167",
+    "967771175376",
+    "263789255687",
+    "263781170219",
+    "967771846185",
+    "263784085722",
+    "263778853837",
+    "263776117770",
+    "263781026384",
+    "263783750412",
+    "263775874162",
+    "263784709312",
+    "263782385087",
+    "263778732702",
+    "967773663808",
+    "967778319490",
+    "967774525696",
+    "967772590567",
+    "967773948023",
+    "263784709295",
+    "263786791544",
+    "213549216007",
+    "584166184341",
+    "992001440061",
+    "263788209290"
+  ],
+  "manualNumbers": [
+    {
+      "id": "num_sys_1",
+      "number": "6282134567890",
+      "country": "Indonesia",
+      "server": "System Added"
+    },
+    {
+      "id": "num_sys_2",
+      "number": "263771234567",
+      "country": "Zimbabwe",
+      "server": "System Added"
+    },
+    {
+      "id": "num_sys_3",
+      "number": "967771234567",
+      "country": "Yemen",
+      "server": "System Added"
+    },
+    {
+      "id": "num_sys_4",
+      "number": "213551234567",
+      "country": "Algeria",
+      "server": "System Added"
+    },
+    {
+      "id": "num_sys_5",
+      "number": "79012345678",
+      "country": "Russia",
+      "server": "System Added"
+    }
+  ],
+  "manualSms": [
+    {
+      "timestamp": "2026-07-10T12:33:57.000Z",
+      "number": "263788209290",
+      "service": "Telegram",
+      "message": "Telegram code 75963nnYou can also tap on this link to log innhttpstmelogin75963nnO2P2zjBpJ",
+      "country": "Zimbabwe",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T12:32:28.000Z",
+      "number": "992001440061",
+      "service": "WhatsApp",
+      "message": "# Akun WhatsApp Business Anda sedang didaftarkan di perangkat barunnJangan bagikan kode dengan siapa punnKode WhatsApp Business Anda 173-911nrJbAXP1KV",
+      "country": "Indonesia",
+      "source": "NP"
+    },
+    {
+      "timestamp": "2026-07-10T08:40:27.000Z",
+      "number": "584166184341",
+      "service": "Other Service",
+      "message": "# To access your Bolt account use code 8571 Never share this codenID WdpiXhIekmh",
+      "country": "Venezuela",
+      "source": "NP"
+    },
+    {
+      "timestamp": "2026-07-10T09:21:39.000Z",
+      "number": "213549216007",
+      "service": "Other Service",
+      "message": "# inDrive code 3419ncpjyScQHg",
+      "country": "Algeria",
+      "source": "HADI"
+    },
+    {
+      "timestamp": "2026-07-10T11:10:46.000Z",
+      "number": "263786791544",
+      "service": "Rednote",
+      "message": "ÄrednoteÑ Your verification code is 179742 for login via phone number valid for 5 mins Do not share it with anyone",
+      "country": "Zimbabwe",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:12:44.000Z",
+      "number": "263784709295",
+      "service": "Rednote",
+      "message": "ÄrednoteÑ Your verification code is 165855 for login via phone number valid for 5 mins Do not share it with anyone",
+      "country": "Zimbabwe",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:37:34.000Z",
+      "number": "967773948023",
+      "service": "Imo",
+      "message": "Your imo verification code is 7353nDO NOT share with anyone else to prevent account being compromised",
+      "country": "Yemen",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:40:24.000Z",
+      "number": "967772590567",
+      "service": "Imo",
+      "message": "Your imo verification code is 1524nDO NOT share with anyone else to prevent account being compromised",
+      "country": "Yemen",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:42:31.000Z",
+      "number": "967774525696",
+      "service": "Imo",
+      "message": "imo verification code 0521nNever share this code with anyone",
+      "country": "Yemen",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:46:20.000Z",
+      "number": "967778319490",
+      "service": "Imo",
+      "message": "Your imo verification code is 0945nDO NOT share with anyone else to prevent account being compromised",
+      "country": "Yemen",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:47:25.000Z",
+      "number": "967773663808",
+      "service": "Imo",
+      "message": "imo verification code 7503nNever share this code with anyone",
+      "country": "Yemen",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T11:55:12.000Z",
+      "number": "263778732702",
+      "service": "Airlink",
+      "message": "you better",
+      "country": "Zimbabwe",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T12:00:58.000Z",
+      "number": "263782385087",
+      "service": "ACCA1",
+      "message": "Study Hub is ACCAs online tuition programme Book your Applied Skills resit course for September 2026 now httpsbitly4h9iLiy",
+      "country": "Zimbabwe",
+      "source": "API 2"
+    },
+    {
+      "timestamp": "2026-07-10T12:01:10.000Z",
+      "number": "263784709312",
+      "service": "ACCA1",
+      "message": "Study Hub is ACCAs online tuition programme Book your Applied Skills resit course for September 2026 now httpsbitly4h9iLiy",
+      "country": "Zimbabwe",
+      "source": "API 2"
+    }
+  ]
+}

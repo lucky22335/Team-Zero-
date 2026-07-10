@@ -1,0 +1,6 @@
+{
+  "name": "Team Zero SMS Panel",
+  "description": "A highly secure virtual SMS and Telegram Bot panel under the Team Zero brand. Connect Telegram bots, view country-wise number status, analyze OTP content via Gemini, and broadcast announcements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

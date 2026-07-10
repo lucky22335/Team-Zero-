@@ -10,7 +10,7 @@ import crypto from "crypto";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Enable robust CORS and handle browser OPTIONS preflight requests
 app.use((req, res, next) => {

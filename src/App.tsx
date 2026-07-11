@@ -137,6 +137,7 @@ export default function App() {
   const [adminNumbersText, setAdminNumbersText] = useState("");
   const [addingNumbers, setAddingNumbers] = useState(false);
   const [adminNumbersList, setAdminNumbersList] = useState<any[]>([]);
+  const [selectedAdminNumbers, setSelectedAdminNumbers] = useState<string[]>([]);
   const [loadingAdminNumbers, setLoadingAdminNumbers] = useState(false);
   
   // Admin SMS Injection State
@@ -717,27 +718,29 @@ export default function App() {
     setTgDiagnosticStatus("checking");
     setTgDiagnosticResult(null);
     try {
-      const url = `https://api.telegram.org/bot${userBotToken}/getMe`;
-      const res = await fetch(url);
+      const res = await secureFetch("/api/telegram/test-token", {
+        method: "POST",
+        body: JSON.stringify({ token: userBotToken })
+      });
       const data = await res.json();
-      if (data && data.ok) {
+      if (data && data.success) {
         setTgDiagnosticStatus("success");
         setTgDiagnosticResult({
-          botName: data.result.first_name,
-          username: data.result.username
+          botName: data.botName,
+          username: data.username
         });
-        showToast(`Success! Connected to @${data.result.username}`);
+        showToast(`Success! Connected to @${data.username}`);
       } else {
         setTgDiagnosticStatus("failed");
         setTgDiagnosticResult({
-          error: data.description || "Invalid token / unauthorized"
+          error: data.error || "Invalid token / unauthorized"
         });
         showToast("Connection failed. Check token.");
       }
     } catch (err: any) {
       setTgDiagnosticStatus("failed");
       setTgDiagnosticResult({
-        error: err.message || "Network error. Failed to reach api.telegram.org"
+        error: err.message || "Network error testing token."
       });
       showToast("Network error testing token.");
     }
@@ -1039,6 +1042,7 @@ export default function App() {
       const data = await res.json();
       if (data.success) {
         showToast("Number deleted successfully!");
+        setSelectedAdminNumbers(prev => prev.filter(id => id !== numId));
         fetchAdminNumbers();
         fetchNumbers(); // Sync main page list
       } else {
@@ -1046,6 +1050,110 @@ export default function App() {
       }
     } catch (err) {
       showToast("❌ Network error deleting number.");
+    }
+  };
+
+  const handleDeleteSelectedAdminNumbers = async () => {
+    if (selectedAdminNumbers.length === 0) {
+      showToast("No numbers selected!");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete the ${selectedAdminNumbers.length} selected numbers?`)) {
+      return;
+    }
+    try {
+      const res = await secureFetch("/api/admin/numbers/delete", {
+        method: "POST",
+        body: JSON.stringify({ password: "ranausman094", numberIds: selectedAdminNumbers })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✅ Successfully deleted ${selectedAdminNumbers.length} numbers!`);
+        setSelectedAdminNumbers([]);
+        fetchAdminNumbers();
+        fetchNumbers();
+      } else {
+        showToast(`❌ Error: ${data.error}`);
+      }
+    } catch (err) {
+      showToast("❌ Network error performing bulk delete.");
+    }
+  };
+
+  const handleDeleteAllAdminNumbers = async () => {
+    if (!window.confirm("⚠️ WARNING: Are you sure you want to delete ALL manual numbers from the inventory? This cannot be undone!")) {
+      return;
+    }
+    try {
+      const res = await secureFetch("/api/admin/numbers/delete-all", {
+        method: "POST",
+        body: JSON.stringify({ password: "ranausman094" })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("✅ All manual numbers deleted successfully!");
+        setSelectedAdminNumbers([]);
+        fetchAdminNumbers();
+        fetchNumbers();
+      } else {
+        showToast(`❌ Error: ${data.error}`);
+      }
+    } catch (err) {
+      showToast("❌ Network error clearing manual numbers.");
+    }
+  };
+
+  const handleBackupDatabase = async () => {
+    try {
+      const res = await secureFetch("/api/admin/db/backup", {
+        method: "POST",
+        body: JSON.stringify({ password: "ranausman094" })
+      });
+      const data = await res.json();
+      if (data.success && data.db) {
+        const jsonStr = JSON.stringify(data.db, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `db_backup_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("✅ Database backup downloaded successfully!");
+      } else {
+        showToast(`❌ Backup failed: ${data.error}`);
+      }
+    } catch (err) {
+      showToast("❌ Network error during database backup.");
+    }
+  };
+
+  const handleRestoreDatabase = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const parsedDb = JSON.parse(text);
+      
+      const res = await secureFetch("/api/admin/db/restore", {
+        method: "POST",
+        body: JSON.stringify({ password: "ranausman094", dbData: parsedDb })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("✅ Database restored successfully! Reloading configuration...");
+        fetchAdminNumbers();
+        fetchNumbers();
+        // Clear input
+        e.target.value = "";
+      } else {
+        showToast(`❌ Restore failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      showToast(`❌ Error reading or parsing restore file: ${err.message}`);
     }
   };
 
@@ -2802,38 +2910,106 @@ export default function App() {
                           No manual numbers currently registered. Use the left form to inject fresh inventory!
                         </div>
                       ) : (
-                        <div className="overflow-y-auto max-h-[360px] border border-gray-800/40 rounded-xl mt-4">
-                          <table className="w-full text-left border-collapse text-xs">
-                            <thead>
-                              <tr className="border-b border-gray-800 bg-black/40 text-gray-400 font-semibold uppercase text-[10px] tracking-wider">
-                                <th className="py-2.5 px-3">Phone Number</th>
-                                <th className="py-2.5 px-3">Country</th>
-                                <th className="py-2.5 px-3">Server</th>
-                                <th className="py-2.5 px-3 text-center">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-800/30">
-                              {adminNumbersList.map((num: any, idx: number) => (
-                                <tr key={num.id || `admin_num_${idx}_${num.number}`} className="hover:bg-black/20 font-mono">
-                                  <td className="py-2 px-3 text-white font-bold">{num.number}</td>
-                                  <td className="py-2 px-3 text-gray-300">
-                                    <span className="mr-1">{getFlag(num.country)}</span>
-                                    {num.country}
-                                  </td>
-                                  <td className="py-2 px-3 text-yellow-500 font-semibold">{num.server}</td>
-                                  <td className="py-2 px-3 text-center">
-                                    <button
-                                      onClick={() => handleDeleteAdminNumber(num.id)}
-                                      className="px-2 py-1 text-[10px] font-bold bg-red-950/40 text-red-400 border border-red-900/30 rounded hover:bg-red-900/20 transition"
-                                    >
-                                      Delete
-                                    </button>
-                                  </td>
+                        <>
+                          {/* Bulk Actions and Database Backup/Restore Panel */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 bg-black/40 border border-gray-800/60 p-3 rounded-xl mt-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={handleDeleteSelectedAdminNumbers}
+                                disabled={selectedAdminNumbers.length === 0}
+                                className="px-2.5 py-1.5 rounded-lg bg-red-950/40 text-red-400 border border-red-900/40 hover:bg-red-900/20 font-bold text-[11px] disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1"
+                              >
+                                Delete Selected ({selectedAdminNumbers.length})
+                              </button>
+                              <button
+                                onClick={handleDeleteAllAdminNumbers}
+                                className="px-2.5 py-1.5 rounded-lg bg-red-800 hover:bg-red-700 text-white border border-red-600/30 font-bold text-[11px] transition flex items-center gap-1"
+                              >
+                                Delete All
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={handleBackupDatabase}
+                                className="px-2.5 py-1.5 rounded-lg bg-indigo-950/40 text-indigo-300 border border-indigo-900/40 hover:bg-indigo-900/20 font-bold text-[11px] transition flex items-center gap-1"
+                                title="Download complete database backup (db.json)"
+                              >
+                                Backup DB
+                              </button>
+                              <label
+                                className="px-2.5 py-1.5 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-900/40 hover:bg-amber-900/20 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                                title="Upload a previously saved backup to restore data"
+                              >
+                                Restore DB
+                                <input
+                                  type="file"
+                                  accept=".json"
+                                  onChange={handleRestoreDatabase}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="overflow-y-auto max-h-[360px] border border-gray-800/40 rounded-xl mt-4">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead>
+                                <tr className="border-b border-gray-800 bg-black/40 text-gray-400 font-semibold uppercase text-[10px] tracking-wider">
+                                  <th className="py-2.5 px-3 w-10 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={adminNumbersList.length > 0 && selectedAdminNumbers.length === adminNumbersList.length}
+                                      onChange={() => {
+                                        if (selectedAdminNumbers.length === adminNumbersList.length) {
+                                          setSelectedAdminNumbers([]);
+                                        } else {
+                                          setSelectedAdminNumbers(adminNumbersList.map(n => n.id));
+                                        }
+                                      }}
+                                      className="rounded border-gray-800 text-[#00ff99] bg-black focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
+                                    />
+                                  </th>
+                                  <th className="py-2.5 px-3">Phone Number</th>
+                                  <th className="py-2.5 px-3">Country</th>
+                                  <th className="py-2.5 px-3">Server</th>
+                                  <th className="py-2.5 px-3 text-center">Action</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </thead>
+                              <tbody className="divide-y divide-gray-800/30">
+                                {adminNumbersList.map((num: any, idx: number) => (
+                                  <tr key={num.id || `admin_num_${idx}_${num.number}`} className="hover:bg-black/20 font-mono">
+                                    <td className="py-2 px-3 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedAdminNumbers.includes(num.id)}
+                                        onChange={() => {
+                                          setSelectedAdminNumbers(prev =>
+                                            prev.includes(num.id) ? prev.filter(id => id !== num.id) : [...prev, num.id]
+                                          );
+                                        }}
+                                        className="rounded border-gray-800 text-[#00ff99] bg-black focus:ring-0 focus:ring-offset-0 cursor-pointer h-3.5 w-3.5"
+                                      />
+                                    </td>
+                                    <td className="py-2 px-3 text-white font-bold">{num.number}</td>
+                                    <td className="py-2 px-3 text-gray-300">
+                                      <span className="mr-1">{getFlag(num.country)}</span>
+                                      {num.country}
+                                    </td>
+                                    <td className="py-2 px-3 text-yellow-500 font-semibold">{num.server}</td>
+                                    <td className="py-2 px-3 text-center">
+                                      <button
+                                        onClick={() => handleDeleteAdminNumber(num.id)}
+                                        className="px-2 py-1 text-[10px] font-bold bg-red-950/40 text-red-400 border border-red-900/30 rounded hover:bg-red-900/20 transition"
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>

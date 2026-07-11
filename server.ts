@@ -6,6 +6,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import os from "os";
 
 dotenv.config();
 
@@ -688,47 +689,52 @@ function execPromise(cmd: string, options: any = {}): Promise<string> {
 let proxyList: string[] = [];
 let currentProxyIndex = 0;
 let lastProxyFetchTime = 0;
+let isFetchingProxies = false;
 
-async function refreshProxyList() {
+async function doFetchProxyList() {
+  if (isFetchingProxies) return;
+  isFetchingProxies = true;
   const now = Date.now();
-  if (proxyList.length > 0 && now - lastProxyFetchTime < 10 * 60 * 1000) {
-    return;
-  }
   try {
-    console.log("[ProxyPool] Fetching fresh proxy list from multiple sources...");
+    console.log("[ProxyPool] Fetching fresh proxy list from multiple sources in parallel...");
     const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     
-    // Fetch from Proxyscrape HTTP & SOCKS5 & SOCKS4
     const httpUrl = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=3000&country=all&ssl=yes&anonymity=all";
-    const httpText = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "${httpUrl}"`);
-    const httpFetched = httpText.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `http://${p}`);
-
     const socks5Url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&timeout=3000&country=all&anonymity=all";
-    const socks5Text = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "${socks5Url}"`);
-    const socks5Fetched = socks5Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks5h://${p}`);
-
     const socks4Url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks4&timeout=3000&country=all&anonymity=all";
-    const socks4Text = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "${socks4Url}"`);
+
+    const [
+      httpText,
+      socks5Text,
+      socks4Text,
+      ghSocks5Text,
+      ghSocks4Text,
+      ghHttpText,
+      monosansS5Text,
+      monosansS4Text,
+      monosansHttpText
+    ] = await Promise.all([
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "${httpUrl}"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "${socks5Url}"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "${socks4Url}"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt"`).catch(() => ""),
+      execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"`).catch(() => "")
+    ]);
+
+    const httpFetched = httpText.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `http://${p}`);
+    const socks5Fetched = socks5Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks5h://${p}`);
     const socks4Fetched = socks4Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks4a://${p}`);
 
-    // Fetch from GitHub SOCKS-List (SOCKS5 & HTTP & SOCKS4)
-    const ghSocks5Text = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt"`);
     const ghSocks5Fetched = ghSocks5Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks5h://${p}`);
-
-    const ghSocks4Text = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt"`);
     const ghSocks4Fetched = ghSocks4Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks4a://${p}`);
-
-    const ghHttpText = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt"`);
     const ghHttpFetched = ghHttpText.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `http://${p}`);
 
-    // Additional highly updated GitHub proxy lists
-    const monosansS5Text = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt"`);
     const monosansS5Fetched = monosansS5Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks5h://${p}`);
-
-    const monosansS4Text = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt"`);
     const monosansS4Fetched = monosansS4Text.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `socks4a://${p}`);
-
-    const monosansHttpText = await execPromise(`curl -s -4 -m 8 -A "${userAgent}" "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"`);
     const monosansHttpFetched = monosansHttpText.split("\n").map(p => p.trim()).filter(p => p.length > 0 && p.includes(":")).map(p => `http://${p}`);
 
     const fetched = [
@@ -736,23 +742,38 @@ async function refreshProxyList() {
       ...ghSocks5Fetched, ...ghSocks4Fetched, ...ghHttpFetched,
       ...monosansS5Fetched, ...monosansS4Fetched, ...monosansHttpFetched
     ];
-    if (fetched.length > 0) {
-      // De-duplicate
-      proxyList = Array.from(new Set(fetched));
-      
-      // Shuffle the proxies to spread load and bypass localized blocking/ratelimiting
-      proxyList.sort(() => Math.random() - 0.5);
 
+    if (fetched.length > 0) {
+      proxyList = Array.from(new Set(fetched));
+      proxyList.sort(() => Math.random() - 0.5);
       currentProxyIndex = 0;
       lastProxyFetchTime = now;
-      console.log(`[ProxyPool] Loaded ${proxyList.length} unique proxies across SOCKS5, SOCKS4, and HTTP protocols.`);
+      console.log(`[ProxyPool] Loaded ${proxyList.length} unique proxies across SOCKS5, SOCKS4, and HTTP protocols in parallel.`);
     } else {
       lastProxyFetchTime = now - 5 * 60 * 1000;
     }
   } catch (err: any) {
-    console.error("[ProxyPool] Error fetching proxy list:", err.message);
+    console.error("[ProxyPool] Error fetching proxy list in parallel:", err.message);
     lastProxyFetchTime = now - 5 * 60 * 1000;
+  } finally {
+    isFetchingProxies = false;
   }
+}
+
+async function refreshProxyList() {
+  const now = Date.now();
+  if (proxyList.length > 0) {
+    if (now - lastProxyFetchTime >= 10 * 60 * 1000) {
+      console.log("[ProxyPool] Triggering background proxy refresh to keep API routes fast...");
+      // Immediately shift the timestamp to prevent double background spawns
+      lastProxyFetchTime = now;
+      doFetchProxyList().catch(() => {});
+    }
+    return;
+  }
+
+  // First time loading - we MUST wait for the parallel proxy scraper
+  await doFetchProxyList();
 }
 
 const COOKIE_FILE = path.join(process.cwd(), "ivas_cookies.txt");
@@ -1624,16 +1645,57 @@ function getOtpUrl(user: any) {
 }
 
 // Keyboard Generator Helpers
-function getMainKeyboard(user: any) {
-  const keyboard: any[][] = [
-    [
+function getMainKeyboard(user: any, targetChatId?: string | number) {
+  const botLink = user?.botConfig?.botLink ? formatTelegramUrl(user.botConfig.botLink) : "";
+  const otpGroupUrl = user?.botConfig?.otpGroupUrl ? formatTelegramUrl(user.botConfig.otpGroupUrl) : "";
+  const isChannelOrGroup = targetChatId ? String(targetChatId).startsWith("-") : false;
+
+  const keyboard: any[][] = [];
+
+  if (isChannelOrGroup) {
+    // For groups/channels, callback_data buttons are invalid/confusing.
+    // Convert them to deep links if botLink is available, or omit them.
+    const row1: any[] = [];
+    if (botLink && botLink.startsWith("http")) {
+      const cleanBotLink = botLink.split("?")[0];
+      row1.push({ text: "📱 Get Number", url: `${cleanBotLink}?start=get_number` });
+      row1.push({ text: "📦 My Numbers", url: `${cleanBotLink}?start=my_numbers` });
+    }
+    if (row1.length > 0) {
+      keyboard.push(row1);
+    }
+    
+    const extraRow: any[] = [];
+    if (botLink && botLink.startsWith("http")) {
+      extraRow.push({ text: "🤖 Panel Bot", url: botLink });
+    }
+    if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
+      extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
+    }
+    if (extraRow.length > 0) {
+      keyboard.push(extraRow);
+    }
+  } else {
+    // Private chat, use standard callback buttons
+    keyboard.push([
       { text: "📱 Get Number", callback_data: "btn_get_number" },
       { text: "📦 My Numbers", callback_data: "btn_my_numbers" }
-    ],
-    [
+    ]);
+    keyboard.push([
       { text: "❓ Help", callback_data: "btn_help" }
-    ]
-  ];
+    ]);
+
+    const extraRow: any[] = [];
+    if (botLink && botLink.startsWith("http")) {
+      extraRow.push({ text: "🤖 Panel Bot", url: botLink });
+    }
+    if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
+      extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
+    }
+    if (extraRow.length > 0) {
+      keyboard.push(extraRow);
+    }
+  }
 
   return { inline_keyboard: keyboard };
 }
@@ -1796,6 +1858,20 @@ function getNumberSessionKeyboard(user: any, country: string, number: string) {
     ]
   ];
 
+  const botLink = user?.botConfig?.botLink ? formatTelegramUrl(user.botConfig.botLink) : "";
+  const otpGroupUrl = user?.botConfig?.otpGroupUrl ? formatTelegramUrl(user.botConfig.otpGroupUrl) : "";
+
+  const extraRow: any[] = [];
+  if (botLink && botLink.startsWith("http")) {
+    extraRow.push({ text: "🤖 Panel Bot", url: botLink });
+  }
+  if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
+    extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
+  }
+  if (extraRow.length > 0) {
+    keyboard.push(extraRow);
+  }
+
   return { inline_keyboard: keyboard };
 }
 
@@ -1833,45 +1909,72 @@ async function runTelegramRequest(token: string, apiMethod: string, payload?: an
   const methodOption = hasPayload ? "-X POST" : "-X GET";
   const headerOption = `-H "Content-Type: application/json"`;
 
+  let lastParsedResponse: any = { ok: false };
+
   try {
-    // 1. Always try DIRECT curl first (Cloud Run has high-speed direct access to Telegram API)
-    try {
-      const cmd = `curl -s -4 -m 10 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
-      const output = await execPromise(cmd, { timeout: 12000 });
-      if (output && output.trim()) {
-        const parsed = JSON.parse(output);
-        if (parsed && parsed.ok !== undefined) {
-          return parsed;
-        }
-      }
-    } catch (err: any) {
-      // direct failed, proceed to proxy pool fallback
-    }
-
-    // 2. Proxy rotation fallback (only if direct fails)
-    if (proxyList.length > 0) {
-      for (let attempt = 0; attempt < 8; attempt++) {
-        const proxy = proxyList[currentProxyIndex];
-        currentProxyIndex = (currentProxyIndex + 1) % proxyList.length;
-
-        try {
-          const cmd = `curl -x "${proxy}" -s -4 -m 5 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
-          const output = await execPromise(cmd, { timeout: 7000 });
-          if (output && output.trim()) {
-            const parsed = JSON.parse(output);
-            if (parsed && (parsed.ok !== undefined || parsed.result)) {
-              // Found a working proxy or genuine API response, adjust currentProxyIndex to stick to this proxy zone
-              currentProxyIndex = (currentProxyIndex - 1 + proxyList.length) % proxyList.length;
-              return parsed;
+    // We will allow up to 3 attempts with rate limit handling (429 retry-after)
+    for (let outerAttempt = 0; outerAttempt < 3; outerAttempt++) {
+      // 1. Always try DIRECT curl first (Cloud Run has high-speed direct access to Telegram API)
+      try {
+        const cmd = `curl -s -4 -m 10 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
+        const output = await execPromise(cmd, { timeout: 12000 });
+        if (output && output.trim()) {
+          const parsed = JSON.parse(output);
+          if (parsed && parsed.ok !== undefined) {
+            if (parsed.ok === false && parsed.error_code === 429) {
+              const retryAfter = parsed.parameters?.retry_after || 5;
+              console.warn(`[Telegram API 429] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${outerAttempt + 1}/3)...`);
+              await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+              lastParsedResponse = parsed;
+              continue; // try next attempt
             }
+            return parsed;
           }
-        } catch (err: any) {
-          // try next proxy
         }
+      } catch (err: any) {
+        // direct failed, proceed to proxy pool fallback
+      }
+
+      // 2. Proxy rotation fallback (only if direct fails)
+      let foundResponse = false;
+      if (proxyList.length > 0) {
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const proxy = proxyList[currentProxyIndex];
+          currentProxyIndex = (currentProxyIndex + 1) % proxyList.length;
+
+          try {
+            const cmd = `curl -x "${proxy}" -s -4 -m 5 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
+            const output = await execPromise(cmd, { timeout: 7000 });
+            if (output && output.trim()) {
+              const parsed = JSON.parse(output);
+              if (parsed && (parsed.ok !== undefined || parsed.result)) {
+                if (parsed.ok === false && parsed.error_code === 429) {
+                  const retryAfter = parsed.parameters?.retry_after || 5;
+                  console.warn(`[Telegram API 429 via Proxy] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${outerAttempt + 1}/3)...`);
+                  await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                  lastParsedResponse = parsed;
+                  foundResponse = true;
+                  break; // break the proxy loop, will continue the outer loop for retry
+                }
+                // Found a working proxy or genuine API response, adjust currentProxyIndex to stick to this proxy zone
+                currentProxyIndex = (currentProxyIndex - 1 + proxyList.length) % proxyList.length;
+                return parsed;
+              }
+            }
+          } catch (err: any) {
+            // try next proxy
+          }
+        }
+      }
+      
+      // If we got a 429 response via proxy, we broke out and foundResponse was true.
+      // If we didn't get any valid response at all, we break out to avoid infinite loops on dead network/proxies
+      if (!foundResponse && lastParsedResponse.error_code !== 429) {
+        break;
       }
     }
 
-    return { ok: false };
+    return lastParsedResponse;
   } finally {
     if (tempFileName) {
       try {
@@ -2052,7 +2155,7 @@ async function handleBotUpdate(userId: string, token: string, update: any) {
     // Handle button routing
     if (data === "btn_main_menu") {
       const textMsg = `🤖 TEAM ZERO SMS PANEL\n\n👋 Welcome, ${firstName}!\n\nGet virtual numbers and receive OTPs instantly.\n\nChoose an option:`;
-      await editBotMessageText(token, chatId, messageId, textMsg, getMainKeyboard(user));
+      await editBotMessageText(token, chatId, messageId, textMsg, getMainKeyboard(user, chatId));
       return;
     }
 
@@ -2229,7 +2332,7 @@ async function handleBotUpdate(userId: string, token: string, update: any) {
   // Command handlers
   if (cleanText.startsWith("/start")) {
     const textMsg = `🤖 TEAM ZERO SMS PANEL\n\n👋 Welcome, ${firstName}!\n\nGet virtual numbers and receive OTPs instantly.\n\nChoose an option:`;
-    await sendCustomTelegramMessageWithKeyboard(token, chatId, textMsg, getMainKeyboard(user));
+    await sendCustomTelegramMessageWithKeyboard(token, chatId, textMsg, getMainKeyboard(user, chatId));
   } else if (cleanText.startsWith("/info")) {
     const contactOwner = user.botConfig?.botLink ? `🌐 Owner Contact: ${user.botConfig.botLink}\n` : "";
     const officialChan = user.botConfig?.otpGroupUrl ? `📢 Official Channel: ${user.botConfig.otpGroupUrl}\n` : "";
@@ -2271,7 +2374,7 @@ async function handleBotUpdate(userId: string, token: string, update: any) {
 
   } else {
     const textMsg = `🤖 TEAM ZERO SMS PANEL\n\n👋 Welcome, ${firstName}!\n\nGet virtual numbers and receive OTPs instantly.\n\nChoose an option:`;
-    await sendCustomTelegramMessageWithKeyboard(token, chatId, textMsg, getMainKeyboard(user));
+    await sendCustomTelegramMessageWithKeyboard(token, chatId, textMsg, getMainKeyboard(user, chatId));
   }
 }
 
@@ -2283,18 +2386,21 @@ async function pollSingleTelegramBot(userId: string, token: string) {
     return;
   }
 
-  // Reload DB to get freshest configurations
-  const db = readDb();
-  const user = db.users.find((u: any) => u.id === userId);
-  
-  // If user doesn't exist, botConfig has changed or status is paused/inactive, stop polling for this token
-  if (!user || !user.botConfig || user.botConfig.token !== token || user.botConfig.status === "paused") {
-    activeBotPollers.delete(token);
-    return;
-  }
-
   let hasUpdates = false;
+  let continuePolling = true;
+
   try {
+    // Reload DB to get freshest configurations
+    const db = readDb();
+    const user = db.users.find((u: any) => u.id === userId);
+    
+    // If user doesn't exist, botConfig has changed or status is paused/inactive, stop polling for this token
+    if (!user || !user.botConfig || user.botConfig.token !== token || user.botConfig.status === "paused") {
+      activeBotPollers.delete(token);
+      continuePolling = false;
+      return;
+    }
+
     const lastUpdateId = botOffsets[token] || 0;
     const data = await runTelegramRequest(token, "getUpdates", {
       offset: lastUpdateId + 1,
@@ -2311,12 +2417,14 @@ async function pollSingleTelegramBot(userId: string, token: string) {
       }
     }
   } catch (err) {
-    // Silently catch individual bot polling issues
+    console.error(`Error polling telegram bot for user ${userId}:`, err);
+  } finally {
+    if (continuePolling) {
+      // Poll immediately if we got updates, otherwise sleep for 250ms to keep it super lightweight but instant
+      const delay = hasUpdates ? 0 : 250;
+      setTimeout(() => pollSingleTelegramBot(userId, token), delay);
+    }
   }
-
-  // Poll immediately if we got updates, otherwise sleep for 150ms to keep it super lightweight but instant (under 1 sec response!)
-  const delay = hasUpdates ? 0 : 150;
-  setTimeout(() => pollSingleTelegramBot(userId, token), delay);
 }
 
 // Telegram Worker: Multi-bot polling coordinator supporting independent parallel pollers
@@ -2354,7 +2462,7 @@ async function pollAllTelegramBots() {
 
 function formatTelegramUrl(url: string): string {
   if (!url) return "";
-  let clean = url.trim();
+  let clean = url.replace(/\s+/g, ""); // Strip all spaces robustly
   if (clean.startsWith("@")) {
     return `https://t.me/${clean.substring(1)}`;
   }
@@ -2474,6 +2582,10 @@ function getOtpInlineKeyboardWithOtp(botConfig: any, extractedOtp: string, targe
     if (row2.length > 0) {
       keyboard.push(row2);
     }
+  }
+
+  if (keyboard.length === 0) {
+    return undefined;
   }
 
   return { inline_keyboard: keyboard };
@@ -2761,6 +2873,7 @@ async function runFastUserApiPoller() {
               
               // Find if this number has an active session with a messageId
               const numSession = (sub.numbers || []).find((n: any) => n.number.replace(/[\s\-\+]/g, "") === numberClean);
+              let wasEdited = false;
               if (numSession && numSession.messageId) {
                 const flag = getCountryFlag(country);
                 const serviceName = user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services";
@@ -2769,10 +2882,13 @@ async function runFastUserApiPoller() {
                 
                 const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
                 await editBotMessageText(token, sub.chatId, numSession.messageId, updatedText, inlineKbWithOtp);
+                wasEdited = true;
               }
 
-              const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
-              await sendCustomTelegramMessageWithKeyboard(token, sub.chatId, customMsgText, inlineKbWithOtp);
+              if (!wasEdited) {
+                const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
+                await sendCustomTelegramMessageWithKeyboard(token, sub.chatId, customMsgText, inlineKbWithOtp);
+              }
             }
             if (user.botConfig?.groupId) {
               const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, user.botConfig.groupId);
@@ -2905,6 +3021,7 @@ async function pollIncomingSms() {
             
             // Find if this number has an active session with a messageId
             const numSession = (sub.numbers || []).find((n: any) => n.number.replace(/[\s\-\+]/g, "") === numberClean);
+            let wasEdited = false;
             if (numSession && numSession.messageId) {
               const flag = getCountryFlag(country);
               const serviceName = user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services";
@@ -2913,15 +3030,18 @@ async function pollIncomingSms() {
               
               const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
               await editBotMessageText(token, sub.chatId, numSession.messageId, updatedText, inlineKbWithOtp);
+              wasEdited = true;
             }
 
-            const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
-            await sendCustomTelegramMessageWithKeyboard(
-              token,
-              sub.chatId,
-              customMsgText,
-              inlineKbWithOtp
-            );
+            if (!wasEdited) {
+              const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
+              await sendCustomTelegramMessageWithKeyboard(
+                token,
+                sub.chatId,
+                customMsgText,
+                inlineKbWithOtp
+              );
+            }
           }
 
           if (user.botConfig?.groupId) {
@@ -3663,7 +3783,7 @@ async function dispatchNewNumbers(newNumbers: any[]) {
     textMsg += `⚡ <b>How to claim:</b> Click <b>📱 Get Number</b> below or type /get_number!`;
 
     // Send to the Telegram group/channel!
-    const inlineKb = getMainKeyboard(user);
+    const inlineKb = getMainKeyboard(user, groupId);
     await sendCustomTelegramMessageWithKeyboard(token, groupId, textMsg, inlineKb);
   }
 }
@@ -3732,18 +3852,104 @@ app.post("/api/admin/numbers", (req, res) => {
 
 app.post("/api/admin/numbers/delete", (req, res) => {
   try {
-    const { password, numberId } = req.body || {};
+    const { password, numberId, numberIds } = req.body || {};
     if (password !== "ranausman094") {
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
     const db = readDb();
     if (db.manualNumbers) {
-      db.manualNumbers = db.manualNumbers.filter((n: any) => n.id !== numberId);
+      if (Array.isArray(numberIds)) {
+        db.manualNumbers = db.manualNumbers.filter((n: any) => !numberIds.includes(n.id));
+      } else if (numberId) {
+        db.manualNumbers = db.manualNumbers.filter((n: any) => n.id !== numberId);
+      }
     }
     writeDb(db);
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete All Manual Numbers
+app.post("/api/admin/numbers/delete-all", (req, res) => {
+  try {
+    const { password } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    const db = readDb();
+    db.manualNumbers = [];
+    writeDb(db);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Backup db.json
+app.post("/api/admin/db/backup", (req, res) => {
+  try {
+    const { password } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    const db = readDb();
+    res.json({ success: true, db });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Restore db.json
+app.post("/api/admin/db/restore", (req, res) => {
+  try {
+    const { password, dbData } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    if (!dbData || typeof dbData !== "object") {
+      return res.status(400).json({ success: false, error: "Invalid database structure" });
+    }
+    
+    // Simple validation of db structure
+    if (!dbData.users) dbData.users = [];
+    if (!dbData.manualNumbers) dbData.manualNumbers = [];
+    if (!dbData.globalApiSettings) dbData.globalApiSettings = {};
+    if (!dbData.smsLogs) dbData.smsLogs = [];
+    
+    writeDb(dbData);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Server-side Telegram Token Test Proxy (bypasses CORS & IFrame Network blocks!)
+app.post("/api/telegram/test-token", async (req, res) => {
+  const { token } = req.body || {};
+  if (!token) {
+    return res.status(400).json({ success: false, error: "Token is required" });
+  }
+  try {
+    const data = await runTelegramRequest(token, "getMe");
+    if (data && data.ok && data.result) {
+      res.json({
+        success: true,
+        botName: data.result.first_name,
+        username: data.result.username
+      });
+    } else {
+      res.json({
+        success: false,
+        error: data && !data.ok ? "Telegram API rejected: Unauthorized/Invalid Token" : "Invalid token or unauthorized"
+      });
+    }
+  } catch (err: any) {
+    res.json({
+      success: false,
+      error: err.message || "Failed to reach Telegram API"
+    });
   }
 });
 

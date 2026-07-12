@@ -99,6 +99,11 @@ export default function App() {
   const [userBotBtn3Text, setUserBotBtn3Text] = useState("");
   const [userBotBtn3Url, setUserBotBtn3Url] = useState("");
 
+  // Guard to prevent background pollers from wiping/overwriting unsaved active inputs
+  const [hasLoadedInitialForm, setHasLoadedInitialForm] = useState(false);
+  // Bulk manual country delete state
+  const [countryToDelete, setCountryToDelete] = useState("");
+
   // WhatsApp OTP Bot States
   const [userBotWhatsappEnabled, setUserBotWhatsappEnabled] = useState(false);
   const [userBotWhatsappNewsletter, setUserBotWhatsappNewsletter] = useState("");
@@ -458,27 +463,31 @@ export default function App() {
         setUserSession(updatedUser);
         localStorage.setItem("team_zero_user_session", JSON.stringify(updatedUser));
         
-        // sync form states
-        setUserBotToken(updatedUser.botConfig?.token || "");
-        setUserBotGroupId(updatedUser.botConfig?.groupId || "");
-        setUserBotOwnerChatId(updatedUser.botConfig?.ownerChatId || "");
-        setUserBotLink(updatedUser.botConfig?.botLink || "");
-        setUserBotOtpGroupUrl(updatedUser.botConfig?.otpGroupUrl || "");
+        // sync form states only on the initial load to preserve active user typing/edits
+        if (!hasLoadedInitialForm) {
+          setUserBotToken(updatedUser.botConfig?.token || "");
+          setUserBotGroupId(updatedUser.botConfig?.groupId || "");
+          setUserBotOwnerChatId(updatedUser.botConfig?.ownerChatId || "");
+          setUserBotLink(updatedUser.botConfig?.botLink || "");
+          setUserBotOtpGroupUrl(updatedUser.botConfig?.otpGroupUrl || "");
 
-        setUserBotBtn1Text(updatedUser.botConfig?.btn1Text || "");
-        setUserBotBtn1Url(updatedUser.botConfig?.btn1Url || "");
-        setUserBotBtn2Text(updatedUser.botConfig?.btn2Text || "");
-        setUserBotBtn2Url(updatedUser.botConfig?.btn2Url || "");
-        setUserBotBtn3Text(updatedUser.botConfig?.btn3Text || "");
-        setUserBotBtn3Url(updatedUser.botConfig?.btn3Url || "");
+          setUserBotBtn1Text(updatedUser.botConfig?.btn1Text || "");
+          setUserBotBtn1Url(updatedUser.botConfig?.btn1Url || "");
+          setUserBotBtn2Text(updatedUser.botConfig?.btn2Text || "");
+          setUserBotBtn2Url(updatedUser.botConfig?.btn2Url || "");
+          setUserBotBtn3Text(updatedUser.botConfig?.btn3Text || "");
+          setUserBotBtn3Url(updatedUser.botConfig?.btn3Url || "");
 
-        setUserBotWhatsappEnabled(!!updatedUser.botConfig?.whatsappEnabled);
-        setUserBotWhatsappNewsletter(updatedUser.botConfig?.whatsappNewsletter || "");
-        setUserBotWhatsappNumberChannel(updatedUser.botConfig?.whatsappNumberChannel || "");
-        setUserBotWhatsappMainChannel(updatedUser.botConfig?.whatsappMainChannel || "");
-        setUserBotWhatsappPoweredBy(updatedUser.botConfig?.whatsappPoweredBy || "");
-        setUserBotWhatsappPhone(updatedUser.botConfig?.whatsappPhone || "");
-        setUserBotWhatsappStatus(updatedUser.botConfig?.whatsappStatus || "offline");
+          setUserBotWhatsappEnabled(!!updatedUser.botConfig?.whatsappEnabled);
+          setUserBotWhatsappNewsletter(updatedUser.botConfig?.whatsappNewsletter || "");
+          setUserBotWhatsappNumberChannel(updatedUser.botConfig?.whatsappNumberChannel || "");
+          setUserBotWhatsappMainChannel(updatedUser.botConfig?.whatsappMainChannel || "");
+          setUserBotWhatsappPoweredBy(updatedUser.botConfig?.whatsappPoweredBy || "");
+          setUserBotWhatsappPhone(updatedUser.botConfig?.whatsappPhone || "");
+          setUserBotWhatsappStatus(updatedUser.botConfig?.whatsappStatus || "offline");
+          
+          setHasLoadedInitialForm(true);
+        }
       }
     } catch (err) {
       // silently ignore failures on automatic sync
@@ -657,6 +666,7 @@ export default function App() {
 
   const handleUserLogout = () => {
     setUserSession(null);
+    setHasLoadedInitialForm(false);
     localStorage.removeItem("team_zero_user_session");
     showToast("Logged out of your bot configuration panel.");
   };
@@ -1100,6 +1110,32 @@ export default function App() {
       }
     } catch (err) {
       showToast("❌ Network error clearing manual numbers.");
+    }
+  };
+
+  const handleDeleteCountryAdminNumbers = async (countryName: string) => {
+    if (!countryName) {
+      showToast("⚠️ Please select a country first!");
+      return;
+    }
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to delete all manual numbers for "${countryName}"? This cannot be undone!`)) {
+      return;
+    }
+    try {
+      const res = await secureFetch("/api/admin/numbers/delete-by-country", {
+        method: "POST",
+        body: JSON.stringify({ password: "ranausman094", country: countryName })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✅ All manual numbers for "${countryName}" deleted successfully!`);
+        fetchAdminNumbers();
+        fetchNumbers();
+      } else {
+        showToast(`❌ Error: ${data.error}`);
+      }
+    } catch (err) {
+      showToast("❌ Network error clearing country numbers.");
     }
   };
 
@@ -2913,20 +2949,59 @@ export default function App() {
                         <>
                           {/* Bulk Actions and Database Backup/Restore Panel */}
                           <div className="flex flex-wrap items-center justify-between gap-3 bg-black/40 border border-gray-800/60 p-3 rounded-xl mt-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                onClick={handleDeleteSelectedAdminNumbers}
-                                disabled={selectedAdminNumbers.length === 0}
-                                className="px-2.5 py-1.5 rounded-lg bg-red-950/40 text-red-400 border border-red-900/40 hover:bg-red-900/20 font-bold text-[11px] disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1"
-                              >
-                                Delete Selected ({selectedAdminNumbers.length})
-                              </button>
-                              <button
-                                onClick={handleDeleteAllAdminNumbers}
-                                className="px-2.5 py-1.5 rounded-lg bg-red-800 hover:bg-red-700 text-white border border-red-600/30 font-bold text-[11px] transition flex items-center gap-1"
-                              >
-                                Delete All
-                              </button>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  onClick={handleDeleteSelectedAdminNumbers}
+                                  disabled={selectedAdminNumbers.length === 0}
+                                  className="px-2.5 py-1.5 rounded-lg bg-red-950/40 text-red-400 border border-red-900/40 hover:bg-red-900/20 font-bold text-[11px] disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1"
+                                >
+                                  Delete Selected ({selectedAdminNumbers.length})
+                                </button>
+                                <button
+                                  onClick={handleDeleteAllAdminNumbers}
+                                  className="px-2.5 py-1.5 rounded-lg bg-red-800 hover:bg-red-700 text-white border border-red-600/30 font-bold text-[11px] transition flex items-center gap-1"
+                                >
+                                  Delete All
+                                </button>
+                              </div>
+
+                              {/* Country Bulk Delete Selector */}
+                              {(() => {
+                                const uniqueCountriesInInventory = Array.from(
+                                  new Set(adminNumbersList.map((n: any) => n.country || "Indonesia"))
+                                ).filter(Boolean).sort() as string[];
+
+                                if (uniqueCountriesInInventory.length > 0) {
+                                  return (
+                                    <div className="flex items-center gap-2 border-l border-gray-800/80 pl-3">
+                                      <select
+                                        value={countryToDelete}
+                                        onChange={(e) => setCountryToDelete(e.target.value)}
+                                        className="bg-black/60 border border-gray-800 rounded-lg px-2 py-1 text-[11px] text-gray-300 focus:outline-none focus:border-red-800 transition"
+                                      >
+                                        <option value="">-- Select Country --</option>
+                                        {uniqueCountriesInInventory.map((c) => (
+                                          <option key={c} value={c}>
+                                            {c} ({adminNumbersList.filter((num: any) => (num.country || "Indonesia") === c).length})
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <button
+                                        onClick={() => {
+                                          handleDeleteCountryAdminNumbers(countryToDelete);
+                                          setCountryToDelete("");
+                                        }}
+                                        disabled={!countryToDelete}
+                                        className="px-2.5 py-1.5 rounded-lg bg-red-950/60 text-red-400 border border-red-900/40 hover:bg-red-900/40 disabled:opacity-30 disabled:pointer-events-none font-bold text-[11px] transition"
+                                      >
+                                        Delete Country
+                                      </button>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
                               <button

@@ -174,49 +174,58 @@ app.use((req, res, next) => {
 if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(
     DB_FILE,
-    JSON.stringify({ users: [], claimedNumbers: [] }, null, 2)
+    JSON.stringify({ users: [], claimedNumbers: [], manualNumbers: [], manualSms: [] }, null, 2)
   );
 } else {
   // Check if current DB format needs migration
   try {
     const raw = fs.readFileSync(DB_FILE, "utf-8");
-    const json = JSON.parse(raw);
-    let changed = false;
-    if (!json.users) {
-      const oldConfig = json.botConfig || {};
-      const oldSubs = json.subscribers || [];
-      json.users = [
-        {
-          id: "default_user",
-          username: "TeamZeroAdmin",
-          email: "admin@teamzero.com",
-          password: "admin",
-          botConfig: {
-            token: oldConfig.token || "",
-            groupId: oldConfig.groupId || "",
-            ownerChatId: "583921",
-            botLink: oldConfig.botLink || "https://t.me/teamzerotrace",
-            otpGroupUrl: oldConfig.otpGroupUrl || "https://whatsapp.com/channel/0029Vb7CHRO96H4QS1ynKI1J",
-            status: oldConfig.token ? "active" : "offline"
-          },
-          subscribers: oldSubs
-        }
-      ];
-      changed = true;
-    }
-    if (!json.claimedNumbers) {
-      json.claimedNumbers = [];
-      changed = true;
-    }
-    if (changed) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(json, null, 2));
+    if (raw && raw.trim()) {
+      const json = JSON.parse(raw);
+      let changed = false;
+      if (!json.users) {
+        const oldConfig = json.botConfig || {};
+        const oldSubs = json.subscribers || [];
+        json.users = [
+          {
+            id: "default_user",
+            username: "TeamZeroAdmin",
+            email: "admin@teamzero.com",
+            password: "admin",
+            botConfig: {
+              token: oldConfig.token || "",
+              groupId: oldConfig.groupId || "",
+              ownerChatId: "583921",
+              botLink: oldConfig.botLink || "https://t.me/teamzerotrace",
+              otpGroupUrl: oldConfig.otpGroupUrl || "https://whatsapp.com/channel/0029Vb7CHRO96H4QS1ynKI1J",
+              status: oldConfig.token ? "active" : "offline"
+            },
+            subscribers: oldSubs
+          }
+        ];
+        changed = true;
+      }
+      if (!json.claimedNumbers) {
+        json.claimedNumbers = [];
+        changed = true;
+      }
+      if (!json.manualNumbers) {
+        json.manualNumbers = [];
+        changed = true;
+      }
+      if (!json.manualSms) {
+        json.manualSms = [];
+        changed = true;
+      }
+      if (changed) {
+        fs.writeFileSync(DB_FILE, JSON.stringify(json, null, 2));
+      }
     }
   } catch (err) {
-    console.error("Migration error, resetting DB:", err);
-    fs.writeFileSync(
-      DB_FILE,
-      JSON.stringify({ users: [], claimedNumbers: [] }, null, 2)
-    );
+    console.error("Migration error, preserving DB and using in-memory default:", err);
+    try {
+      fs.copyFileSync(DB_FILE, DB_FILE + ".corrupted_backup");
+    } catch {}
   }
 }
 
@@ -350,6 +359,8 @@ const perSourceSmsCache: { [source: string]: any[] } = {};
 const perSourceNumbersCache: { [source: string]: any[] } = {};
 let lastNumbersFetchTime = 0;
 let lastSmsFetchTime = 0;
+const NUMBERS_CACHE_TTL = 60 * 1000; // 1 minute Cache TTL for numbers
+const SMS_CACHE_TTL = 2000; // 2 seconds Cache TTL for OTPs/SMS
 const CACHE_TTL = 5000;
 
 // ============================================================
@@ -687,6 +698,10 @@ function execPromise(cmd: string, options: any = {}): Promise<string> {
 }
 
 let proxyList: string[] = [];
+let workingProxies: string[] = [];
+let isDirectBlocked = false;
+let lastDirectAttemptTime = 0;
+const DIRECT_BLOCK_DURATION = 10 * 60 * 1000; // 10 minutes
 let currentProxyIndex = 0;
 let lastProxyFetchTime = 0;
 let isFetchingProxies = false;
@@ -811,6 +826,27 @@ async function runCurlWithProxyAndCookies(url: string, method: "GET" | "POST" = 
     }
   }
 
+  // Try working proxies first for maximum speed
+  for (const proxy of workingProxies) {
+    try {
+      const dataOption = postData ? `-d "${postData.replace(/"/g, '\\"')}"` : "";
+      const methodOption = method === "POST" ? "-X POST" : "-X GET";
+      const cmd = `curl -x "${proxy}" -s -4 -m 3.5 ${methodOption} ${headers} -b "${COOKIE_FILE}" -c "${COOKIE_FILE}" -w "\n%{http_code}" ${dataOption} "${url}"`;
+      
+      const output = await execPromise(cmd, { timeout: 4500 });
+      const lines = output.split("\n");
+      const status = parseInt(lines[lines.length - 1].trim()) || 0;
+      const body = lines.slice(0, lines.length - 1).join("\n");
+
+      if (status === 200 || status === 302 || status === 401) {
+        return { status, body };
+      }
+    } catch (err: any) {
+      // working proxy failed, remove from working set
+      workingProxies = workingProxies.filter(p => p !== proxy);
+    }
+  }
+
   for (let attempt = 0; attempt < 35; attempt++) {
     const proxy = proxyList[currentProxyIndex];
     currentProxyIndex = (currentProxyIndex + 1) % proxyList.length;
@@ -828,6 +864,9 @@ async function runCurlWithProxyAndCookies(url: string, method: "GET" | "POST" = 
       // 401 Unauthorized is also a valid status code that shows a connection succeeded through the proxy to the target host (instead of being blocked or failing)
       if (status === 200 || status === 302 || status === 401) {
         currentProxyIndex = (currentProxyIndex - 1 + proxyList.length) % proxyList.length;
+        if (!workingProxies.includes(proxy)) {
+          workingProxies = [proxy, ...workingProxies].slice(0, 20);
+        }
         return { status, body };
       }
     } catch (err: any) {
@@ -1326,7 +1365,7 @@ async function fetchAggregatedNumbers(targetCountry?: string, force = false) {
   const manual = db.manualNumbers || [];
   
   const now = Date.now();
-  const shouldFetchExt = force || cachedNumbers.length === 0 || (now - lastNumbersFetchTime > CACHE_TTL) || !!targetCountry;
+  const shouldFetchExt = force || cachedNumbers.length === 0 || (now - lastNumbersFetchTime > NUMBERS_CACHE_TTL) || !!targetCountry;
   if (shouldFetchExt) {
     const apiLists: any[] = [];
     
@@ -1473,7 +1512,7 @@ async function fetchAggregatedNumbers(targetCountry?: string, force = false) {
 async function fetchAggregatedSms(force = false) {
   const now = Date.now();
   
-  if (force || cachedSms.length === 0 || now - lastSmsFetchTime > CACHE_TTL) {
+  if (force || cachedSms.length === 0 || now - lastSmsFetchTime > SMS_CACHE_TTL) {
     const db = readDb();
     let allOtps = db.manualSms || [];
     allOtps = [...allOtps];
@@ -1646,9 +1685,16 @@ function getOtpUrl(user: any) {
 
 // Keyboard Generator Helpers
 function getMainKeyboard(user: any, targetChatId?: string | number) {
-  const botLink = user?.botConfig?.botLink ? formatTelegramUrl(user.botConfig.botLink) : "";
-  const otpGroupUrl = user?.botConfig?.otpGroupUrl ? formatTelegramUrl(user.botConfig.otpGroupUrl) : "";
   const isChannelOrGroup = targetChatId ? String(targetChatId).startsWith("-") : false;
+
+  const b1Text = user?.botConfig?.btn1Text || "🤖 Panel Bot";
+  const b1Url = formatTelegramUrl(user?.botConfig?.btn1Url || user?.botConfig?.botLink || "");
+
+  const b2Text = user?.botConfig?.btn2Text || "👁️ See OTP";
+  const b2Url = formatTelegramUrl(user?.botConfig?.btn2Url || user?.botConfig?.otpGroupUrl || "");
+
+  const b3Text = user?.botConfig?.btn3Text || "🤖 Number Bot";
+  const b3Url = formatTelegramUrl(user?.botConfig?.btn3Url || "");
 
   const keyboard: any[][] = [];
 
@@ -1656,6 +1702,7 @@ function getMainKeyboard(user: any, targetChatId?: string | number) {
     // For groups/channels, callback_data buttons are invalid/confusing.
     // Convert them to deep links if botLink is available, or omit them.
     const row1: any[] = [];
+    const botLink = user?.botConfig?.botLink ? formatTelegramUrl(user.botConfig.botLink) : "";
     if (botLink && botLink.startsWith("http")) {
       const cleanBotLink = botLink.split("?")[0];
       row1.push({ text: "📱 Get Number", url: `${cleanBotLink}?start=get_number` });
@@ -1666,14 +1713,18 @@ function getMainKeyboard(user: any, targetChatId?: string | number) {
     }
     
     const extraRow: any[] = [];
-    if (botLink && botLink.startsWith("http")) {
-      extraRow.push({ text: "🤖 Panel Bot", url: botLink });
+    if (b1Url && b1Url.startsWith("http")) {
+      extraRow.push({ text: b1Text, url: b1Url });
     }
-    if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
-      extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
+    if (b2Url && b2Url.startsWith("http")) {
+      extraRow.push({ text: b2Text, url: b2Url });
     }
     if (extraRow.length > 0) {
       keyboard.push(extraRow);
+    }
+
+    if (b3Url && b3Url.startsWith("http")) {
+      keyboard.push([{ text: b3Text, url: b3Url }]);
     }
   } else {
     // Private chat, use standard callback buttons
@@ -1686,14 +1737,18 @@ function getMainKeyboard(user: any, targetChatId?: string | number) {
     ]);
 
     const extraRow: any[] = [];
-    if (botLink && botLink.startsWith("http")) {
-      extraRow.push({ text: "🤖 Panel Bot", url: botLink });
+    if (b1Url && b1Url.startsWith("http")) {
+      extraRow.push({ text: b1Text, url: b1Url });
     }
-    if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
-      extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
+    if (b2Url && b2Url.startsWith("http")) {
+      extraRow.push({ text: b2Text, url: b2Url });
     }
     if (extraRow.length > 0) {
       keyboard.push(extraRow);
+    }
+
+    if (b3Url && b3Url.startsWith("http")) {
+      keyboard.push([{ text: b3Text, url: b3Url }]);
     }
   }
 
@@ -1816,15 +1871,22 @@ async function getCountryKeyboard() {
     };
   }
 
-  // Get unique countries
-  const uniqueCountries = Array.from(new Set(activeNumbers.map((n: any) => String(n.country || "Indonesia"))));
+  // Get unique countries and counts
+  const counts: { [key: string]: number } = {};
+  activeNumbers.forEach((n: any) => {
+    const c = String(n.country || "Indonesia");
+    counts[c] = (counts[c] || 0) + 1;
+  });
+
+  const uniqueCountries = Object.keys(counts);
   uniqueCountries.sort();
 
   const buttons: any[] = [];
   uniqueCountries.forEach((country) => {
     const flag = getCountryFlag(country);
+    const count = counts[country];
     buttons.push({
-      text: `${flag} ${country}`,
+      text: `${flag} ${country} [${count}]`,
       callback_data: `btn_country_${country}`
     });
   });
@@ -1889,10 +1951,8 @@ function getHelpKeyboard() {
   };
 }
 
-// Centralized Telegram Request Executor with robust multi-proxy rotation and fallback
+// Centralized Telegram Request Executor with robust direct connection, retries and rate limit handling
 async function runTelegramRequest(token: string, apiMethod: string, payload?: any): Promise<{ ok: boolean; result?: any }> {
-  await refreshProxyList();
-
   const url = `https://api.telegram.org/bot${token}/${apiMethod}`;
   const hasPayload = payload !== undefined;
   
@@ -1912,65 +1972,35 @@ async function runTelegramRequest(token: string, apiMethod: string, payload?: an
   let lastParsedResponse: any = { ok: false };
 
   try {
-    // We will allow up to 3 attempts with rate limit handling (429 retry-after)
-    for (let outerAttempt = 0; outerAttempt < 3; outerAttempt++) {
-      // 1. Always try DIRECT curl first (Cloud Run has high-speed direct access to Telegram API)
+    // We try direct connection up to 3 times with exponential backoff for transient glitches.
+    // We NEVER use random public proxies for Telegram Bot API due to critical security risks (OTP leak, token leak)
+    // and severe unreliability.
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const cmd = `curl -s -4 -m 10 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
         const output = await execPromise(cmd, { timeout: 12000 });
+        
         if (output && output.trim()) {
           const parsed = JSON.parse(output);
           if (parsed && parsed.ok !== undefined) {
+            // Handle rate limiting (429)
             if (parsed.ok === false && parsed.error_code === 429) {
               const retryAfter = parsed.parameters?.retry_after || 5;
-              console.warn(`[Telegram API 429] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${outerAttempt + 1}/3)...`);
+              console.warn(`[Telegram API 429] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${attempt + 1}/3)...`);
               await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
               lastParsedResponse = parsed;
-              continue; // try next attempt
+              continue;
             }
             return parsed;
           }
         }
       } catch (err: any) {
-        // direct failed, proceed to proxy pool fallback
-      }
-
-      // 2. Proxy rotation fallback (only if direct fails)
-      let foundResponse = false;
-      if (proxyList.length > 0) {
-        for (let attempt = 0; attempt < 8; attempt++) {
-          const proxy = proxyList[currentProxyIndex];
-          currentProxyIndex = (currentProxyIndex + 1) % proxyList.length;
-
-          try {
-            const cmd = `curl -x "${proxy}" -s -4 -m 5 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
-            const output = await execPromise(cmd, { timeout: 7000 });
-            if (output && output.trim()) {
-              const parsed = JSON.parse(output);
-              if (parsed && (parsed.ok !== undefined || parsed.result)) {
-                if (parsed.ok === false && parsed.error_code === 429) {
-                  const retryAfter = parsed.parameters?.retry_after || 5;
-                  console.warn(`[Telegram API 429 via Proxy] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${outerAttempt + 1}/3)...`);
-                  await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-                  lastParsedResponse = parsed;
-                  foundResponse = true;
-                  break; // break the proxy loop, will continue the outer loop for retry
-                }
-                // Found a working proxy or genuine API response, adjust currentProxyIndex to stick to this proxy zone
-                currentProxyIndex = (currentProxyIndex - 1 + proxyList.length) % proxyList.length;
-                return parsed;
-              }
-            }
-          } catch (err: any) {
-            // try next proxy
-          }
+        console.warn(`[Telegram API] Direct attempt ${attempt + 1}/3 failed or timed out: ${err.message || err}`);
+        // If it's a transient failure, wait a bit before retrying
+        if (attempt < 2) {
+          const delay = (attempt + 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
-      }
-      
-      // If we got a 429 response via proxy, we broke out and foundResponse was true.
-      // If we didn't get any valid response at all, we break out to avoid infinite loops on dead network/proxies
-      if (!foundResponse && lastParsedResponse.error_code !== 429) {
-        break;
       }
     }
 
@@ -2016,6 +2046,32 @@ async function sendCustomTelegramMessage(token: string, chatId: string | number,
 }
 
 // Helper to send message with custom Inline Keyboard Markup
+function cleanReplyMarkup(replyMarkup: any) {
+  if (!replyMarkup) return undefined;
+  if (replyMarkup.inline_keyboard && Array.isArray(replyMarkup.inline_keyboard)) {
+    const activeRows = replyMarkup.inline_keyboard.map((row: any) => {
+      if (!Array.isArray(row)) return [];
+      return row.filter((btn: any) => {
+        if (!btn || typeof btn !== "object" || !btn.text) return false;
+        // MUST have either url, callback_data, or other valid button action fields
+        const hasUrl = btn.url && typeof btn.url === "string" && btn.url.trim().length > 0;
+        const hasCallback = btn.callback_data !== undefined && btn.callback_data !== null && String(btn.callback_data).trim().length > 0;
+        const hasWebApp = btn.web_app && typeof btn.web_app === "object";
+        const hasLoginUrl = btn.login_url && typeof btn.login_url === "object";
+        const hasSwitchInline = btn.switch_inline_query !== undefined;
+        const hasSwitchInlineCurrent = btn.switch_inline_query_current_chat !== undefined;
+        return hasUrl || hasCallback || hasWebApp || hasLoginUrl || hasSwitchInline || hasSwitchInlineCurrent;
+      });
+    }).filter((row: any) => row.length > 0);
+    
+    if (activeRows.length === 0) {
+      return undefined;
+    }
+    return { inline_keyboard: activeRows };
+  }
+  return replyMarkup;
+}
+
 async function sendCustomTelegramMessageWithKeyboard(token: string, chatId: string | number, text: string, replyMarkup?: any) {
   if (!token) return false;
   try {
@@ -2024,8 +2080,9 @@ async function sendCustomTelegramMessageWithKeyboard(token: string, chatId: stri
       text,
       parse_mode: "HTML",
     };
-    if (replyMarkup) {
-      body.reply_markup = replyMarkup;
+    const cleaned = cleanReplyMarkup(replyMarkup);
+    if (cleaned) {
+      body.reply_markup = cleaned;
     }
     let res = await runTelegramRequest(token, "sendMessage", body);
     if (res && res.ok) {
@@ -2068,9 +2125,12 @@ async function editBotMessageText(token: string, chatId: string | number, messag
       chat_id: chatId,
       message_id: messageId,
       text,
-      parse_mode: "HTML",
-      reply_markup: replyMarkup
+      parse_mode: "HTML"
     };
+    const cleaned = cleanReplyMarkup(replyMarkup);
+    if (cleaned) {
+      body.reply_markup = cleaned;
+    }
     let res = await runTelegramRequest(token, "editMessageText", body);
     if (res && res.ok) {
       return;
@@ -2085,8 +2145,18 @@ async function editBotMessageText(token: string, chatId: string | number, messag
   }
 }
 
+function getServiceForSms(sms: any, user: any) {
+  const numberClean = (sms.number || "").replace(/[\s\-\+]/g, "");
+  const db = readDb();
+  const manualNum = (db.manualNumbers || []).find((n: any) => n.number.replace(/[\s\-\+]/g, "") === numberClean);
+  if (manualNum && manualNum.server) {
+    return manualNum.server;
+  }
+  return sms.service || (user?.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services");
+}
+
 // Subscriber binder helper
-function registerNumberForSubInDb(userId: string, chatId: number, number: string, country: string, messageId?: number) {
+function registerNumberForSubInDb(userId: string, chatId: number, number: string, country: string, messageId?: number, service?: string) {
   const db = readDb();
   const userIdx = db.users.findIndex((u: any) => u.id === userId);
   if (userIdx === -1) return;
@@ -2104,7 +2174,7 @@ function registerNumberForSubInDb(userId: string, chatId: number, number: string
     );
     if (!hasNum) {
       if (!user.subscribers[subIdx].numbers) user.subscribers[subIdx].numbers = [];
-      user.subscribers[subIdx].numbers.push({ number, country, registeredAt: now, messageId });
+      user.subscribers[subIdx].numbers.push({ number, country, service, registeredAt: now, messageId });
     }
   } else {
     user.subscribers.push({
@@ -2112,7 +2182,7 @@ function registerNumberForSubInDb(userId: string, chatId: number, number: string
       username: "Simulated_User",
       firstName: "User_" + chatId,
       registeredAt: now,
-      numbers: [{ number, country, registeredAt: now, messageId }]
+      numbers: [{ number, country, service, registeredAt: now, messageId }]
     });
   }
   writeDb(db);
@@ -2184,13 +2254,14 @@ async function handleBotUpdate(userId: string, token: string, update: any) {
 
       const randomLine = countryLines[Math.floor(Math.random() * countryLines.length)];
       const displayNum = randomLine.number;
+      const actualService = randomLine.server || randomLine.source || (user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services");
 
       // Register the number with the subscriber and immediately claim/delete it
-      registerNumberForSubInDb(userId, chatId, displayNum, country, messageId);
+      registerNumberForSubInDb(userId, chatId, displayNum, country, messageId, actualService);
       claimNumberInDb(displayNum);
 
       const flag = getCountryFlag(country);
-      const serviceName = user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services";
+      const serviceName = actualService;
 
       const textMsg = `🌍 <b>Country:</b> ${country} ${flag}\n🔌 <b>Service:</b> ${serviceName}\n\n☎ <b>Number:</b> <code>${displayNum}</code>\n\n⌛ <b>Waiting for OTP...</b>`;
       await editBotMessageText(token, chatId, messageId, textMsg, getNumberSessionKeyboard(user, country, displayNum));
@@ -2215,13 +2286,14 @@ async function handleBotUpdate(userId: string, token: string, update: any) {
 
       const displayNum = selectedLine.number;
       const country = selectedLine.country || "Indonesia";
+      const actualService = selectedLine.server || selectedLine.source || (user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services");
 
       // Register the number with the subscriber and immediately claim/delete it
-      registerNumberForSubInDb(userId, chatId, displayNum, country, messageId);
+      registerNumberForSubInDb(userId, chatId, displayNum, country, messageId, actualService);
       claimNumberInDb(displayNum);
 
       const flag = getCountryFlag(country);
-      const serviceName = user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services";
+      const serviceName = actualService;
 
       const textMsg = `🌍 <b>Country:</b> ${country} ${flag}\n🔌 <b>Service:</b> ${serviceName}\n\n☎ <b>Number:</b> <code>${displayNum}</code>\n\n⌛ <b>Waiting for OTP...</b>`;
       await editBotMessageText(token, chatId, messageId, textMsg, getNumberSessionKeyboard(user, country, displayNum));
@@ -2861,7 +2933,8 @@ async function runFastUserApiPoller() {
 
           const token = user.botConfig?.token;
           const extOtp = extractOtp(msg);
-          const customMsgText = formatTelegramOtpMessage(sms, msg, service, country);
+          const userSpecificService = getServiceForSms(sms, user);
+          const customMsgText = formatTelegramOtpMessage(sms, msg, userSpecificService, country);
 
           const matchedSubs = (user.subscribers || []).filter((s: any) =>
             (s.numbers || []).some((n: any) => n.number.replace(/[\s\-\+]/g, "") === numberClean)
@@ -2876,7 +2949,7 @@ async function runFastUserApiPoller() {
               let wasEdited = false;
               if (numSession && numSession.messageId) {
                 const flag = getCountryFlag(country);
-                const serviceName = user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services";
+                const serviceName = numSession.service || userSpecificService;
                 const displayOtp = extOtp === "PENDING" ? "Awaiting Code..." : extOtp;
                 const updatedText = `🌍 <b>Country:</b> ${country} ${flag}\n🔌 <b>Service:</b> ${serviceName}\n\n☎ <b>Number:</b> <code>${numSession.number}</code>\n\n✅ <b>OTP Received:</b> <code>${displayOtp}</code>\n\n💬 <b>Message:</b>\n<i>${escapeTelegramHtml(msg)}</i>`;
                 
@@ -2922,7 +2995,7 @@ async function runFastUserApiPoller() {
   } finally {
     isFastPolling = false;
     if (!process.env.VERCEL) {
-      setTimeout(runFastUserApiPoller, 5000);
+      setTimeout(runFastUserApiPoller, 2000);
     }
   }
 }
@@ -2937,7 +3010,7 @@ let isPollingIncomingSms = false;
 // SMS Worker: Forwarding to all subscribers across all bots
 async function pollIncomingSms() {
   if (isPollingIncomingSms) {
-    setTimeout(pollIncomingSms, 10000);
+    setTimeout(pollIncomingSms, 2000);
     return;
   }
   isPollingIncomingSms = true;
@@ -3009,7 +3082,8 @@ async function pollIncomingSms() {
 
         const token = user.botConfig?.token;
         const extOtp = extractOtp(msg);
-        const customMsgText = formatTelegramOtpMessage(otp, msg, service, country);
+        const userSpecificService = getServiceForSms(otp, user);
+        const customMsgText = formatTelegramOtpMessage(otp, msg, userSpecificService, country);
 
         const matchedSubs = (user.subscribers || []).filter((s: any) =>
           (s.numbers || []).some((n: any) => n.number.replace(/[\s\-\+]/g, "") === numberClean)
@@ -3024,7 +3098,7 @@ async function pollIncomingSms() {
             let wasEdited = false;
             if (numSession && numSession.messageId) {
               const flag = getCountryFlag(country);
-              const serviceName = user.botConfig?.whatsappEnabled ? "WhatsApp" : "All Services";
+              const serviceName = numSession.service || userSpecificService;
               const displayOtp = extOtp === "PENDING" ? "Awaiting Code..." : extOtp;
               const updatedText = `🌍 <b>Country:</b> ${country} ${flag}\n🔌 <b>Service:</b> ${serviceName}\n\n☎ <b>Number:</b> <code>${numSession.number}</code>\n\n✅ <b>OTP Received:</b> <code>${displayOtp}</code>\n\n💬 <b>Message:</b>\n<i>${escapeTelegramHtml(msg)}</i>`;
               
@@ -3115,7 +3189,7 @@ async function pollIncomingSms() {
   } finally {
     isPollingIncomingSms = false;
     if (!process.env.VERCEL) {
-      setTimeout(pollIncomingSms, 5000);
+      setTimeout(pollIncomingSms, 2000);
     }
   }
 }
@@ -3880,6 +3954,29 @@ app.post("/api/admin/numbers/delete-all", (req, res) => {
     }
     const db = readDb();
     db.manualNumbers = [];
+    writeDb(db);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete All Manual Numbers of a Specific Country
+app.post("/api/admin/numbers/delete-by-country", (req, res) => {
+  try {
+    const { password, country } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    if (!country) {
+      return res.status(400).json({ success: false, error: "Country is required" });
+    }
+    const db = readDb();
+    if (db.manualNumbers) {
+      db.manualNumbers = db.manualNumbers.filter(
+        (n: any) => String(n.country || "").trim().toLowerCase() !== country.trim().toLowerCase()
+      );
+    }
     writeDb(db);
     res.json({ success: true });
   } catch (err: any) {

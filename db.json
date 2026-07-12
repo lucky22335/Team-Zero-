@@ -57,6 +57,14 @@
       ],
       "otpHistory": [
         {
+          "timestamp": "2026-07-12T18:14:06.000Z",
+          "number": "258873143273",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business code 725-809\nDont share this code with others\nrJbAXP1KV",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
           "timestamp": "2026-07-12T18:14:00.000Z",
           "number": "258872810296",
           "service": "WhatsApp",
@@ -285,14 +293,6 @@
           "number": "258873104888",
           "service": "WhatsApp",
           "message": "# Your WhatsApp Business code 550-539\nDont share this code with others\nrJbAXP1KV",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T18:01:33.000Z",
-          "number": "258872294561",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 143-440\n4sgLq1p5sV6",
           "country": "Mozambique",
           "source": "API 3"
         }
@@ -551,7 +551,8 @@
     "258872811485",
     "258874932440",
     "258872975406",
-    "967779010869"
+    "967779010869",
+    "258873143273"
   ],
   "manualNumbers": [
     {
@@ -586,6 +587,14 @@
     }
   ],
   "manualSms": [
+    {
+      "timestamp": "2026-07-12T18:14:06.000Z",
+      "number": "258873143273",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business code 725-809\nDont share this code with others\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
     {
       "timestamp": "2026-07-12T18:14:00.000Z",
       "number": "258872810296",
@@ -1375,14 +1384,6 @@
       "number": "258873394027",
       "service": "WhatsApp",
       "message": "# Kode WhatsApp Business 873-298\nJangan bagikan kode ini dengan orang lain\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:59:55.000Z",
-      "number": "258872249558",
-      "service": "WhatsApp",
-      "message": "# Akun WhatsApp Business Anda sedang didaftarkan di perangkat baru\n\nJangan bagikan kode dengan siapa pun\nKode WhatsApp Business Anda 894-852\nrJbAXP1KV",
       "country": "Mozambique",
       "source": "API 3"
     }

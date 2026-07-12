@@ -57,6 +57,62 @@
       ],
       "otpHistory": [
         {
+          "timestamp": "2026-07-12T18:00:21.000Z",
+          "number": "258872413928",
+          "service": "FACEBOOK",
+          "message": "# 255679 adalah kode Facebook Anda H29QFsn4Sr",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T18:00:20.000Z",
+          "number": "258872828933",
+          "service": "WhatsApp",
+          "message": "Uw WhatsApp-account wordt geregistreerd op een nieuw apparaat\n\nDeel deze code met niemand\nUw WhatsApp-code 367-663",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T17:58:34.000Z",
+          "number": "258873263089",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business code 472-624\nDont share this code with others\nrJbAXP1KV",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T17:58:08.000Z",
+          "number": "50940314744",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business code 248-273\nDont share this code with others\nrJbAXP1KV",
+          "country": "Indonesia",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T17:57:56.000Z",
+          "number": "258875119352",
+          "service": "WhatsApp",
+          "message": "Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 888-478",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T17:57:54.000Z",
+          "number": "258873440390",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 638-664\n4sgLq1p5sV6",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T17:56:46.000Z",
+          "number": "258875079218",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business code 801-526\nDont share this code with others\nrJbAXP1KV",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
           "timestamp": "2026-07-12T17:48:32.000Z",
           "number": "258874876684",
           "service": "WhatsApp",
@@ -237,62 +293,6 @@
           "number": "258868328130",
           "service": "WhatsApp",
           "message": "Kode WhatsApp Business 378-771\nJangan bagikan kode ini dengan orang lain",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T09:46:27.000Z",
-          "number": "584266005010",
-          "service": "WhatsApp",
-          "message": "Kode WhatsApp 413-283nJangan bagikan kode ini dengan orang lain",
-          "country": "Venezuela",
-          "source": "API 2"
-        },
-        {
-          "timestamp": "2026-07-12T09:45:30.000Z",
-          "number": "258867951130",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 347-512\nrJbAXP1KV",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T09:43:35.000Z",
-          "number": "584161182429",
-          "service": "WhatsApp",
-          "message": "Kode WhatsApp 153-983nJangan bagikan kode ini dengan orang lain",
-          "country": "Venezuela",
-          "source": "API 2"
-        },
-        {
-          "timestamp": "2026-07-12T09:42:00.000Z",
-          "number": "584269076598",
-          "service": "WhatsApp",
-          "message": "Kode WhatsApp 436-350nJangan bagikan kode ini dengan orang lain",
-          "country": "Venezuela",
-          "source": "API 2"
-        },
-        {
-          "timestamp": "2026-07-12T09:42:00.000Z",
-          "number": "258867897806",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 565-023\nrJbAXP1KV",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T09:40:00.000Z",
-          "number": "258868372763",
-          "service": "WhatsApp",
-          "message": "Kode WhatsApp Business 589-196\nJangan bagikan kode ini dengan orang lain",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T09:38:29.000Z",
-          "number": "258868311297",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 605-152\nrJbAXP1KV",
           "country": "Mozambique",
           "source": "API 3"
         }
@@ -514,7 +514,15 @@
     "258873443120",
     "258872810296",
     "258874356172",
-    "258874876684"
+    "258874876684",
+    "258873520944",
+    "258872600598",
+    "258875120780",
+    "258875079218",
+    "258873440390",
+    "258873263089",
+    "258872828933",
+    "258872413928"
   ],
   "manualNumbers": [
     {
@@ -549,6 +557,86 @@
     }
   ],
   "manualSms": [
+    {
+      "timestamp": "2026-07-12T18:00:21.000Z",
+      "number": "258872413928",
+      "service": "FACEBOOK",
+      "message": "# 255679 adalah kode Facebook Anda H29QFsn4Sr",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T18:00:20.000Z",
+      "number": "258872828933",
+      "service": "WhatsApp",
+      "message": "Uw WhatsApp-account wordt geregistreerd op een nieuw apparaat\n\nDeel deze code met niemand\nUw WhatsApp-code 367-663",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:58:34.000Z",
+      "number": "258873263089",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business code 472-624\nDont share this code with others\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:58:08.000Z",
+      "number": "50940314744",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business code 248-273\nDont share this code with others\nrJbAXP1KV",
+      "country": "Indonesia",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:57:56.000Z",
+      "number": "258875119352",
+      "service": "WhatsApp",
+      "message": "Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 888-478",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:57:54.000Z",
+      "number": "258873440390",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 638-664\n4sgLq1p5sV6",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:56:46.000Z",
+      "number": "258875079218",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business code 801-526\nDont share this code with others\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:52:18.000Z",
+      "number": "258875120780",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 401-656\n4sgLq1p5sV6",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:51:02.000Z",
+      "number": "258872600598",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business code 816-818\nDont share this code with others\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T17:48:49.000Z",
+      "number": "258873520944",
+      "service": "WhatsApp",
+      "message": "Jouw WhatsApp-code 173-970\nDeel deze code niet met anderen",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
     {
       "timestamp": "2026-07-12T17:48:32.000Z",
       "number": "258874876684",
@@ -1266,86 +1354,6 @@
       "number": "584162027309",
       "service": "WhatsApp",
       "message": "Your WhatsApp account is being registered on a new devicennDo not share this code with anyonenYour WhatsApp code 815-461",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:28:47.000Z",
-      "number": "584267649915",
-      "service": "WhatsApp",
-      "message": "Your WhatsApp account is being registered on a new devicennDo not share this code with anyonenYour WhatsApp code 523-524",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:30:41.000Z",
-      "number": "263781008111",
-      "service": "Imo",
-      "message": "# Your imo verification code is 8100nDO NOT share with anyone else to prevent account being compromisednW5EUe21Qadh",
-      "country": "Zimbabwe",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:31:07.000Z",
-      "number": "584265156733",
-      "service": "WhatsApp",
-      "message": "Akun WhatsApp Anda sedang didaftarkan di perangkat barunnJangan bagikan kode dengan siapa punnKode WhatsApp Anda 357-897",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:31:38.000Z",
-      "number": "263784496655",
-      "service": "Imo",
-      "message": "# Your imo verification code is 0859nDO NOT share with anyone else to prevent account being compromisednW5EUe21Qadh",
-      "country": "Zimbabwe",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:32:49.000Z",
-      "number": "584166921082",
-      "service": "WhatsApp",
-      "message": "Akun WhatsApp Anda sedang didaftarkan di perangkat barunnJangan bagikan kode dengan siapa punnKode WhatsApp Anda 728-797",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:33:08.000Z",
-      "number": "263780389648",
-      "service": "Telegram",
-      "message": "Telegram code 18740nnYou can also tap on this link to log innhttpstmelogin18740",
-      "country": "Zimbabwe",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:33:09.000Z",
-      "number": "584269389317",
-      "service": "WhatsApp",
-      "message": "Your WhatsApp account is being registered on a new devicennDo not share this code with anyonenYour WhatsApp code 866-695",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:33:27.000Z",
-      "number": "584265464029",
-      "service": "WhatsApp",
-      "message": "Akun WhatsApp Anda sedang didaftarkan di perangkat barunnJangan bagikan kode dengan siapa punnKode WhatsApp Anda 125-217",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T07:33:58.000Z",
-      "number": "584169774200",
-      "service": "WhatsApp",
-      "message": "Akun WhatsApp Anda sedang didaftarkan di perangkat barunnJangan bagikan kode dengan siapa punnKode WhatsApp Anda 879-347",
-      "country": "Venezuela",
-      "source": "API 2"
-    },
-    {
-      "timestamp": "2026-07-12T09:26:09.000Z",
-      "number": "584163666170",
-      "service": "WhatsApp",
-      "message": "Kode WhatsApp 527-748nJangan bagikan kode ini dengan orang lain",
       "country": "Venezuela",
       "source": "API 2"
     }

@@ -10,6 +10,23 @@ import os from "os";
 
 dotenv.config();
 
+function loadDynamicEnv() {
+  try {
+    const dynamicPath = path.join(process.cwd(), "github_config_dynamic.json");
+    if (fs.existsSync(dynamicPath)) {
+      const data = fs.readFileSync(dynamicPath, "utf8");
+      const parsed = JSON.parse(data);
+      if (parsed.GITHUB_TOKEN) process.env.GITHUB_TOKEN = parsed.GITHUB_TOKEN;
+      if (parsed.GITHUB_REPO) process.env.GITHUB_REPO = parsed.GITHUB_REPO;
+      if (parsed.GITHUB_PATH) process.env.GITHUB_PATH = parsed.GITHUB_PATH;
+      if (parsed.GITHUB_BRANCH) process.env.GITHUB_BRANCH = parsed.GITHUB_BRANCH;
+    }
+  } catch (err) {
+    console.error("Error loading dynamic env:", err);
+  }
+}
+loadDynamicEnv();
+
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -57,11 +74,48 @@ let lastDbLoadTime = 0;
 const DB_CACHE_TTL = 3000; // 3 seconds cache TTL to avoid redundant fetches on rapid requests
 
 async function loadDbFromStore() {
+  loadDynamicEnv();
   const now = Date.now();
   if (dbCache && (now - lastDbLoadTime < DB_CACHE_TTL)) {
     return dbCache;
   }
 
+  // 1. Check GitHub Persistence
+  if (process.env.GITHUB_TOKEN && process.env.GITHUB_REPO) {
+    try {
+      const repo = process.env.GITHUB_REPO;
+      const pathFile = process.env.GITHUB_PATH || "db.json";
+      const branch = process.env.GITHUB_BRANCH || "main";
+      const url = `https://api.github.com/repos/${repo}/contents/${pathFile}?ref=${branch}`;
+      console.log(`[DB Store] Attempting to load from GitHub: ${repo}/${pathFile} (${branch})`);
+      const res = await fetch(url, {
+        headers: {
+          "Authorization": `token ${process.env.GITHUB_TOKEN}`,
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "OTP-Bot-Server"
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.content) {
+          const decoded = Buffer.from(data.content, "base64").toString("utf8");
+          dbCache = JSON.parse(decoded);
+          lastDbLoadTime = Date.now();
+          console.log("[DB Store] Loaded successfully from GitHub!");
+          try {
+            fs.writeFileSync(DB_FILE, decoded, "utf8");
+          } catch {}
+          return dbCache;
+        }
+      } else {
+        console.warn("[DB Store] GitHub load response status:", res.status);
+      }
+    } catch (err) {
+      console.error("[DB Store] GitHub Load failed:", err);
+    }
+  }
+
+  // 2. Check Vercel KV
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     try {
       const url = `${process.env.KV_REST_API_URL}/get/teamzero_db`;
@@ -104,6 +158,7 @@ async function loadDbFromStore() {
 }
 
 async function saveDbToStore() {
+  loadDynamicEnv();
   if (!dbCache) return;
 
   if (!dbCache.users) dbCache.users = [];
@@ -119,6 +174,57 @@ async function saveDbToStore() {
     console.error("[DB Store] Local save failed:", err);
   }
 
+  // 1. Sync to GitHub Repository (if configured)
+  if (process.env.GITHUB_TOKEN && process.env.GITHUB_REPO) {
+    try {
+      const repo = process.env.GITHUB_REPO;
+      const pathFile = process.env.GITHUB_PATH || "db.json";
+      const branch = process.env.GITHUB_BRANCH || "main";
+      const url = `https://api.github.com/repos/${repo}/contents/${pathFile}?ref=${branch}`;
+      
+      // Get current SHA of the file (to edit/update existing file)
+      let currentSha: string | undefined = undefined;
+      const getRes = await fetch(url, {
+        headers: {
+          "Authorization": `token ${process.env.GITHUB_TOKEN}`,
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "OTP-Bot-Server"
+        }
+      });
+      if (getRes.ok) {
+        const getData = await getRes.json();
+        currentSha = getData?.sha;
+      }
+
+      // Update / Create the file on GitHub repo
+      const base64Content = Buffer.from(dbStr).toString("base64");
+      const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${pathFile}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${process.env.GITHUB_TOKEN}`,
+          "Accept": "application/vnd.github.v3+json",
+          "Content-Type": "application/json",
+          "User-Agent": "OTP-Bot-Server"
+        },
+        body: JSON.stringify({
+          message: "Update database [automated]",
+          content: base64Content,
+          sha: currentSha,
+          branch: branch
+        })
+      });
+      if (!putRes.ok) {
+        const errText = await putRes.text();
+        console.error("[DB Store] GitHub save failed:", putRes.status, errText);
+      } else {
+        console.log(`[DB Store] Successfully backed up database to GitHub repository: ${repo}/${pathFile}`);
+      }
+    } catch (err) {
+      console.error("[DB Store] GitHub Save failed:", err);
+    }
+  }
+
+  // 2. Sync to Vercel KV
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     try {
       const url = process.env.KV_REST_API_URL;
@@ -1687,14 +1793,8 @@ function getOtpUrl(user: any) {
 function getMainKeyboard(user: any, targetChatId?: string | number) {
   const isChannelOrGroup = targetChatId ? String(targetChatId).startsWith("-") : false;
 
-  const b1Text = user?.botConfig?.btn1Text || "🤖 Panel Bot";
-  const b1Url = formatTelegramUrl(user?.botConfig?.btn1Url || user?.botConfig?.botLink || "");
-
-  const b2Text = user?.botConfig?.btn2Text || "👁️ See OTP";
-  const b2Url = formatTelegramUrl(user?.botConfig?.btn2Url || user?.botConfig?.otpGroupUrl || "");
-
-  const b3Text = user?.botConfig?.btn3Text || "🤖 Number Bot";
-  const b3Url = formatTelegramUrl(user?.botConfig?.btn3Url || "");
+  const botLink = user?.botConfig?.botLink ? formatTelegramUrl(user.botConfig.botLink) : "";
+  const otpGroupUrl = user?.botConfig?.otpGroupUrl ? formatTelegramUrl(user.botConfig.otpGroupUrl) : "";
 
   const keyboard: any[][] = [];
 
@@ -1702,7 +1802,6 @@ function getMainKeyboard(user: any, targetChatId?: string | number) {
     // For groups/channels, callback_data buttons are invalid/confusing.
     // Convert them to deep links if botLink is available, or omit them.
     const row1: any[] = [];
-    const botLink = user?.botConfig?.botLink ? formatTelegramUrl(user.botConfig.botLink) : "";
     if (botLink && botLink.startsWith("http")) {
       const cleanBotLink = botLink.split("?")[0];
       row1.push({ text: "📱 Get Number", url: `${cleanBotLink}?start=get_number` });
@@ -1713,18 +1812,14 @@ function getMainKeyboard(user: any, targetChatId?: string | number) {
     }
     
     const extraRow: any[] = [];
-    if (b1Url && b1Url.startsWith("http")) {
-      extraRow.push({ text: b1Text, url: b1Url });
+    if (botLink && botLink.startsWith("http")) {
+      extraRow.push({ text: "🤖 Panel Bot", url: botLink });
     }
-    if (b2Url && b2Url.startsWith("http")) {
-      extraRow.push({ text: b2Text, url: b2Url });
+    if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
+      extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
     }
     if (extraRow.length > 0) {
       keyboard.push(extraRow);
-    }
-
-    if (b3Url && b3Url.startsWith("http")) {
-      keyboard.push([{ text: b3Text, url: b3Url }]);
     }
   } else {
     // Private chat, use standard callback buttons
@@ -1737,18 +1832,14 @@ function getMainKeyboard(user: any, targetChatId?: string | number) {
     ]);
 
     const extraRow: any[] = [];
-    if (b1Url && b1Url.startsWith("http")) {
-      extraRow.push({ text: b1Text, url: b1Url });
+    if (botLink && botLink.startsWith("http")) {
+      extraRow.push({ text: "🤖 Panel Bot", url: botLink });
     }
-    if (b2Url && b2Url.startsWith("http")) {
-      extraRow.push({ text: b2Text, url: b2Url });
+    if (otpGroupUrl && otpGroupUrl.startsWith("http")) {
+      extraRow.push({ text: "👁️ See OTP", url: otpGroupUrl });
     }
     if (extraRow.length > 0) {
       keyboard.push(extraRow);
-    }
-
-    if (b3Url && b3Url.startsWith("http")) {
-      keyboard.push([{ text: b3Text, url: b3Url }]);
     }
   }
 
@@ -1837,7 +1928,7 @@ function formatTelegramOtpMessage(otp: any, msg: string, service: string, countr
 
   const escCountry = escapeTelegramHtml(country);
   const escService = escapeTelegramHtml(service);
-  const escOtp = extractedOtp === "PENDING" ? "Awaiting Code..." : escapeTelegramHtml(extractedOtp);
+  const escOtp = extractedOtp === "PENDING" ? "😺" : escapeTelegramHtml(extractedOtp);
 
   let text = `╭━━━━━━━━━━━━━━━━━━━━╮\n`;
   text += `┃ ${flag} ${escCountry} ${escService}\n`;
@@ -1857,6 +1948,49 @@ function formatTelegramOtpMessage(otp: any, msg: string, service: string, countr
   
   text += `╰━━━━━━━━━━━━━━━━━━━━╯`;
   return text;
+}
+
+function formatWhatsAppOtpMessage(otp: any, msg: string, service: string, country: string, botConfig: any): string {
+  const flag = getCountryFlag(country);
+  const maskedNum = maskPhoneNumber(otp.number);
+  const extractedOtp = extractOtp(msg);
+
+  const mainLink = botConfig?.whatsappMainChannel || "https://whatsapp.com/channel/0029Vb7CHRO96H4QS1ynKI1J";
+  const numLink = botConfig?.whatsappNumberChannel || "https://whatsapp.com/channel/0029Vb8DpvPEFeXkJN8ax33b";
+  const brand = botConfig?.whatsappPoweredBy || "Team Zero™ 🇵🇰";
+
+  let timestamp = "";
+  try {
+    timestamp = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Karachi",
+      hour12: true,
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }) + " (PKT)";
+  } catch (e) {
+    timestamp = new Date().toISOString();
+  }
+
+  return `✨ *${flag} | ${otp.number} Message 1* ⚡
+
+> *Time:* ${timestamp}
+> *Country:* ${flag} ${country}
+   *Number:* *${maskedNum}*
+> *Service:* ${service}
+   *OTP:* *${extractedOtp}*
+
+> *Join For Numbers:*
+> 1 ${mainLink}
+> 2 ${numLink}
+
+*Full Message:*
+${msg}
+
+> Developed by ${brand}`;
 }
 
 async function getCountryKeyboard() {
@@ -1951,69 +2085,65 @@ function getHelpKeyboard() {
   };
 }
 
-// Centralized Telegram Request Executor with robust direct connection, retries and rate limit handling
+// Centralized Telegram Request Executor with robust native fetch, retries and rate limit handling
 async function runTelegramRequest(token: string, apiMethod: string, payload?: any): Promise<{ ok: boolean; result?: any }> {
-  const url = `https://api.telegram.org/bot${token}/${apiMethod}`;
-  const hasPayload = payload !== undefined;
-  
-  // Write the payload to a temp file if it exists, to avoid shell escaping issues and support full unicode/emoji
-  let tempFileName = "";
-  let dataOption = "";
-  if (hasPayload) {
-    const fileId = crypto.randomBytes(8).toString("hex");
-    tempFileName = path.join(isVercel ? "/tmp" : process.cwd(), `tg_payload_${fileId}.json`);
-    fs.writeFileSync(tempFileName, JSON.stringify(payload), "utf8");
-    dataOption = `--data-binary "@${tempFileName}"`;
-  }
-  
-  const methodOption = hasPayload ? "-X POST" : "-X GET";
-  const headerOption = `-H "Content-Type: application/json"`;
+  const cleanToken = (token || "").trim();
+  const url = `https://api.telegram.org/bot${cleanToken}/${apiMethod}`;
 
   let lastParsedResponse: any = { ok: false };
 
-  try {
-    // We try direct connection up to 3 times with exponential backoff for transient glitches.
-    // We NEVER use random public proxies for Telegram Bot API due to critical security risks (OTP leak, token leak)
-    // and severe unreliability.
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const cmd = `curl -s -4 -m 10 ${methodOption} ${headerOption} ${dataOption} "${url}"`;
-        const output = await execPromise(cmd, { timeout: 12000 });
-        
-        if (output && output.trim()) {
-          const parsed = JSON.parse(output);
-          if (parsed && parsed.ok !== undefined) {
-            // Handle rate limiting (429)
-            if (parsed.ok === false && parsed.error_code === 429) {
-              const retryAfter = parsed.parameters?.retry_after || 5;
-              console.warn(`[Telegram API 429] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${attempt + 1}/3)...`);
-              await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-              lastParsedResponse = parsed;
-              continue;
-            }
-            return parsed;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+
+    try {
+      const options: RequestInit = {
+        method: payload !== undefined ? "POST" : "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      };
+
+      if (payload !== undefined) {
+        options.body = JSON.stringify(payload);
+      }
+
+      const response = await fetch(url, options);
+      clearTimeout(timeoutId);
+
+      const text = await response.text();
+      if (text && text.trim()) {
+        const parsed = JSON.parse(text);
+        if (parsed && parsed.ok !== undefined) {
+          // Handle rate limiting (429)
+          if (parsed.ok === false && parsed.error_code === 429) {
+            const retryAfter = parsed.parameters?.retry_after || 5;
+            console.warn(`[Telegram API 429] Rate limited. Waiting ${retryAfter}s before retrying (attempt ${attempt + 1}/3)...`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            lastParsedResponse = parsed;
+            continue;
           }
+          return parsed;
         }
-      } catch (err: any) {
-        console.warn(`[Telegram API] Direct attempt ${attempt + 1}/3 failed or timed out: ${err.message || err}`);
-        // If it's a transient failure, wait a bit before retrying
-        if (attempt < 2) {
-          const delay = (attempt + 1) * 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+      } else {
+        console.warn(`[Telegram API] Direct attempt ${attempt + 1}/3 returned empty response body.`);
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isAbort = err.name === "AbortError";
+      console.warn(`[Telegram API] Direct attempt ${attempt + 1}/3 failed or ${isAbort ? "timed out" : "errored"}: ${err.message || err}`);
+      
+      if (attempt < 2) {
+        const delay = (attempt + 1) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-
-    return lastParsedResponse;
-  } finally {
-    if (tempFileName) {
-      try {
-        if (fs.existsSync(tempFileName)) {
-          fs.unlinkSync(tempFileName);
-        }
-      } catch {}
-    }
   }
+
+  // Fallback log to help debug
+  console.warn(`[Telegram API] All direct connection attempts failed. Returning last parsed response: ${JSON.stringify(lastParsedResponse)}`);
+  return lastParsedResponse;
 }
 
 // Helper to send message via Telegram API
@@ -2592,32 +2722,24 @@ function getOtpInlineKeyboard(botConfig: any) {
 
 function getOtpInlineKeyboardWithOtp(botConfig: any, extractedOtp: string, targetChatId?: string | number) {
   const keyboard: any[][] = [];
-  
-  const b1Text = botConfig?.btn1Text || "🤖 Number Bot";
+  const isPending = !extractedOtp || extractedOtp === "PENDING";
+
+  const b1Text = botConfig?.btn1Text || "🤖 Bot Panel";
   const b1Url = formatTelegramUrl(botConfig?.btn1Url || botConfig?.botLink || "");
   
-  const b2Text = botConfig?.btn2Text || "🤖 File To Link Bot";
+  const b2Text = botConfig?.btn2Text || "⚡ See OTP";
   const b2Url = formatTelegramUrl(botConfig?.btn2Url || botConfig?.otpGroupUrl || "");
   
   const b3Text = botConfig?.btn3Text || "📢 Main Channel";
   const b3Url = formatTelegramUrl(botConfig?.btn3Url || "");
 
-  const hasAnyLink = (b1Url && b1Url.startsWith("http")) ||
-                     (b2Url && b2Url.startsWith("http")) ||
-                     (b3Url && b3Url.startsWith("http"));
-
   const isChannelOrGroup = targetChatId ? String(targetChatId).startsWith("-") : false;
 
-  if (!hasAnyLink && isChannelOrGroup) {
-    return undefined;
-  }
-
   if (isChannelOrGroup) {
-    // For channels and groups, we MUST NOT include any callback_data buttons (e.g. the copy button).
-    // Telegram will reject reply markup with callback_data if sent to a channel.
-    // Instead, only show the link buttons!
+    // For groups/channels, callback_data buttons are invalid.
+    // Show the custom link buttons when SMS is active!
     const row1: any[] = [];
-    if (b1Url && b1Url.startsWith("http")) {
+    if (b1Text && b1Url && b1Url.startsWith("http")) {
       row1.push({ text: b1Text, url: b1Url });
     }
     if (row1.length > 0) {
@@ -2625,30 +2747,34 @@ function getOtpInlineKeyboardWithOtp(botConfig: any, extractedOtp: string, targe
     }
 
     const row2: any[] = [];
-    if (b2Url && b2Url.startsWith("http")) {
+    if (b2Text && b2Url && b2Url.startsWith("http")) {
       row2.push({ text: b2Text, url: b2Url });
     }
-    if (b3Url && b3Url.startsWith("http")) {
+    if (b3Text && b3Url && b3Url.startsWith("http")) {
       row2.push({ text: b3Text, url: b3Url });
     }
     if (row2.length > 0) {
       keyboard.push(row2);
     }
   } else {
-    // For private chats, we can safely include the Copy OTP callback button.
+    // Private chat, include the Copy OTP callback button if NOT pending, and custom link buttons!
     const row1: any[] = [];
-    row1.push({ text: `🔒 ${extractedOtp}`, callback_data: `btn_copy_${extractedOtp}` });
+    if (!isPending) {
+      row1.push({ text: `🔒 ${extractedOtp}`, callback_data: `btn_copy_${extractedOtp}` });
+    }
     
-    if (b1Url && b1Url.startsWith("http")) {
+    if (b1Text && b1Url && b1Url.startsWith("http")) {
       row1.push({ text: b1Text, url: b1Url });
     }
-    keyboard.push(row1);
+    if (row1.length > 0) {
+      keyboard.push(row1);
+    }
 
     const row2: any[] = [];
-    if (b2Url && b2Url.startsWith("http")) {
+    if (b2Text && b2Url && b2Url.startsWith("http")) {
       row2.push({ text: b2Text, url: b2Url });
     }
-    if (b3Url && b3Url.startsWith("http")) {
+    if (b3Text && b3Url && b3Url.startsWith("http")) {
       row2.push({ text: b3Text, url: b3Url });
     }
     if (row2.length > 0) {
@@ -2950,7 +3076,7 @@ async function runFastUserApiPoller() {
               if (numSession && numSession.messageId) {
                 const flag = getCountryFlag(country);
                 const serviceName = numSession.service || userSpecificService;
-                const displayOtp = extOtp === "PENDING" ? "Awaiting Code..." : extOtp;
+                const displayOtp = extOtp === "PENDING" ? "😺" : extOtp;
                 const updatedText = `🌍 <b>Country:</b> ${country} ${flag}\n🔌 <b>Service:</b> ${serviceName}\n\n☎ <b>Number:</b> <code>${numSession.number}</code>\n\n✅ <b>OTP Received:</b> <code>${displayOtp}</code>\n\n💬 <b>Message:</b>\n<i>${escapeTelegramHtml(msg)}</i>`;
                 
                 const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
@@ -3099,7 +3225,7 @@ async function pollIncomingSms() {
             if (numSession && numSession.messageId) {
               const flag = getCountryFlag(country);
               const serviceName = numSession.service || userSpecificService;
-              const displayOtp = extOtp === "PENDING" ? "Awaiting Code..." : extOtp;
+              const displayOtp = extOtp === "PENDING" ? "😺" : extOtp;
               const updatedText = `🌍 <b>Country:</b> ${country} ${flag}\n🔌 <b>Service:</b> ${serviceName}\n\n☎ <b>Number:</b> <code>${numSession.number}</code>\n\n✅ <b>OTP Received:</b> <code>${displayOtp}</code>\n\n💬 <b>Message:</b>\n<i>${escapeTelegramHtml(msg)}</i>`;
               
               const inlineKbWithOtp = getOtpInlineKeyboardWithOtp(user.botConfig, extOtp, sub.chatId);
@@ -3162,6 +3288,14 @@ async function pollIncomingSms() {
               user.whatsappHistory = user.whatsappHistory.slice(0, 30);
             }
             dbUpdated = true;
+
+            // Trigger Real WhatsApp Delivery if active
+            if (whatsappStatus === "active" && user.botConfig?.whatsappNewsletter) {
+              const waText = formatWhatsAppOtpMessage(otp, msg, service, country, user.botConfig);
+              sendRealWhatsAppMessage(user.botConfig.whatsappNewsletter, waText).catch((err) => {
+                console.error("Failed to auto-forward message via WhatsApp:", err);
+              });
+            }
           }
         }
 
@@ -3703,7 +3837,7 @@ app.post("/api/admin/login", (req, res) => {
   }
 });
 
-// 7. Get All Users (Admin Only) - Shows emails, usernames, raw passwords, bot tokens
+// 7. Get All Users (Admin Only) - Shows emails, usernames, raw passwords, bot tokens, and dates
 app.post("/api/admin/users", (req, res) => {
   try {
     const { password } = req.body || {};
@@ -3712,7 +3846,45 @@ app.post("/api/admin/users", (req, res) => {
     }
 
     const db = readDb();
+    let updated = false;
+    (db.users || []).forEach((u: any) => {
+      if (!u.createdAt) {
+        const ts = parseInt(u.id.replace("user_", ""));
+        u.createdAt = !isNaN(ts) ? new Date(ts).toISOString() : new Date().toISOString();
+        updated = true;
+      }
+      if (!u.expiryDate) {
+        const creationTime = new Date(u.createdAt).getTime();
+        u.expiryDate = new Date(creationTime + 30 * 24 * 60 * 60 * 1000).toISOString();
+        updated = true;
+      }
+    });
+    if (updated) {
+      writeDb(db);
+    }
     res.json({ success: true, users: db.users || [] });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7b. Update User Expiry Date (Admin Only)
+app.post("/api/admin/users/update-date", (req, res) => {
+  try {
+    const { password, userId, expiryDate } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const db = readDb();
+    const user = db.users.find((u: any) => u.id === userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    user.expiryDate = expiryDate;
+    writeDb(db);
+    res.json({ success: true, message: "User expiry date updated successfully" });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -4019,6 +4191,94 @@ app.post("/api/admin/db/restore", (req, res) => {
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET GitHub Config
+app.get("/api/admin/github-config", (req, res) => {
+  try {
+    const { password } = req.query || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    loadDynamicEnv();
+    res.json({
+      success: true,
+      token: process.env.GITHUB_TOKEN || "",
+      repo: process.env.GITHUB_REPO || "",
+      path: process.env.GITHUB_PATH || "db.json",
+      branch: process.env.GITHUB_BRANCH || "main"
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST GitHub Config
+app.post("/api/admin/github-config", (req, res) => {
+  try {
+    const { password, token, repo, path: pathFile, branch } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+    
+    const config = {
+      GITHUB_TOKEN: token || "",
+      GITHUB_REPO: repo || "",
+      GITHUB_PATH: pathFile || "db.json",
+      GITHUB_BRANCH: branch || "main"
+    };
+    
+    fs.writeFileSync(path.join(process.cwd(), "github_config_dynamic.json"), JSON.stringify(config, null, 2), "utf8");
+    
+    // Apply immediately to process.env
+    process.env.GITHUB_TOKEN = config.GITHUB_TOKEN;
+    process.env.GITHUB_REPO = config.GITHUB_REPO;
+    process.env.GITHUB_PATH = config.GITHUB_PATH;
+    process.env.GITHUB_BRANCH = config.GITHUB_BRANCH;
+    
+    res.json({ success: true, message: "GitHub configuration saved successfully!" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST Test GitHub Connection
+app.post("/api/admin/db/test-github", async (req, res) => {
+  try {
+    const { password, token, repo, path: pathFile, branch } = req.body || {};
+    if (password !== "ranausman094") {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const t = token || process.env.GITHUB_TOKEN;
+    const r = repo || process.env.GITHUB_REPO;
+    const p = pathFile || process.env.GITHUB_PATH || "db.json";
+    const b = branch || process.env.GITHUB_BRANCH || "main";
+
+    if (!t || !r) {
+      return res.status(400).json({ success: false, error: "GitHub Token and Repository are required to test." });
+    }
+
+    const url = `https://api.github.com/repos/${r}/contents/${p}?ref=${b}`;
+    console.log(`[GitHub Test] Testing connection to ${r}/${p} (${b})`);
+    
+    const response = await fetch(url, {
+      headers: {
+        "Authorization": `token ${t}`,
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "OTP-Bot-Server-Test"
+      }
+    });
+
+    if (response.ok) {
+      res.json({ success: true, message: "Connection successful! Database read verified." });
+    } else {
+      const errText = await response.text();
+      res.status(400).json({ success: false, error: `GitHub responded: Status ${response.status} - ${errText}` });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: `Connection failed: ${err.message}` });
   }
 });
 

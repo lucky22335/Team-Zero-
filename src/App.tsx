@@ -70,10 +70,16 @@ export default function App() {
   // ==========================================
   // 1. "DEPLOY MY BOT" (USER REGISTRATION & LOGIN) STATE
   // ==========================================
-  const [userSession, setUserSession] = useState<any>(() => {
-    const saved = localStorage.getItem("team_zero_user_session");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const initialSavedSession = (() => {
+    try {
+      const saved = localStorage.getItem("team_zero_user_session");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const [userSession, setUserSession] = useState<any>(initialSavedSession);
   const [userAuthMode, setUserAuthMode] = useState<"login" | "register">("login");
   const [regUsername, setRegUsername] = useState("");
   const [regEmail, setRegEmail] = useState("");
@@ -82,36 +88,36 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   // User's own bot config form (once logged in)
-  const [userBotToken, setUserBotToken] = useState("");
-  const [userBotGroupId, setUserBotGroupId] = useState("");
-  const [userBotOwnerChatId, setUserBotOwnerChatId] = useState("");
-  const [userBotLink, setUserBotLink] = useState("");
+  const [userBotToken, setUserBotToken] = useState(initialSavedSession?.botConfig?.token || "");
+  const [userBotGroupId, setUserBotGroupId] = useState(initialSavedSession?.botConfig?.groupId || "");
+  const [userBotOwnerChatId, setUserBotOwnerChatId] = useState(initialSavedSession?.botConfig?.ownerChatId || "");
+  const [userBotLink, setUserBotLink] = useState(initialSavedSession?.botConfig?.botLink || "");
   const [tgDiagnosticStatus, setTgDiagnosticStatus] = useState<"idle" | "checking" | "success" | "failed">("idle");
   const [tgDiagnosticResult, setTgDiagnosticResult] = useState<{ botName?: string; username?: string; error?: string } | null>(null);
-  const [userBotOtpGroupUrl, setUserBotOtpGroupUrl] = useState("");
+  const [userBotOtpGroupUrl, setUserBotOtpGroupUrl] = useState(initialSavedSession?.botConfig?.otpGroupUrl || "");
   const [userBotUpdating, setUserBotUpdating] = useState(false);
 
   // Custom inline buttons states
-  const [userBotBtn1Text, setUserBotBtn1Text] = useState("");
-  const [userBotBtn1Url, setUserBotBtn1Url] = useState("");
-  const [userBotBtn2Text, setUserBotBtn2Text] = useState("");
-  const [userBotBtn2Url, setUserBotBtn2Url] = useState("");
-  const [userBotBtn3Text, setUserBotBtn3Text] = useState("");
-  const [userBotBtn3Url, setUserBotBtn3Url] = useState("");
+  const [userBotBtn1Text, setUserBotBtn1Text] = useState(initialSavedSession?.botConfig?.btn1Text || "");
+  const [userBotBtn1Url, setUserBotBtn1Url] = useState(initialSavedSession?.botConfig?.btn1Url || "");
+  const [userBotBtn2Text, setUserBotBtn2Text] = useState(initialSavedSession?.botConfig?.btn2Text || "");
+  const [userBotBtn2Url, setUserBotBtn2Url] = useState(initialSavedSession?.botConfig?.btn2Url || "");
+  const [userBotBtn3Text, setUserBotBtn3Text] = useState(initialSavedSession?.botConfig?.btn3Text || "");
+  const [userBotBtn3Url, setUserBotBtn3Url] = useState(initialSavedSession?.botConfig?.btn3Url || "");
 
   // Guard to prevent background pollers from wiping/overwriting unsaved active inputs
-  const [hasLoadedInitialForm, setHasLoadedInitialForm] = useState(false);
+  const [hasLoadedInitialForm, setHasLoadedInitialForm] = useState(!!initialSavedSession);
   // Bulk manual country delete state
   const [countryToDelete, setCountryToDelete] = useState("");
 
   // WhatsApp OTP Bot States
-  const [userBotWhatsappEnabled, setUserBotWhatsappEnabled] = useState(false);
-  const [userBotWhatsappNewsletter, setUserBotWhatsappNewsletter] = useState("");
-  const [userBotWhatsappNumberChannel, setUserBotWhatsappNumberChannel] = useState("");
-  const [userBotWhatsappMainChannel, setUserBotWhatsappMainChannel] = useState("");
-  const [userBotWhatsappPoweredBy, setUserBotWhatsappPoweredBy] = useState("");
-  const [userBotWhatsappPhone, setUserBotWhatsappPhone] = useState("");
-  const [userBotWhatsappStatus, setUserBotWhatsappStatus] = useState("offline");
+  const [userBotWhatsappEnabled, setUserBotWhatsappEnabled] = useState(!!initialSavedSession?.botConfig?.whatsappEnabled);
+  const [userBotWhatsappNewsletter, setUserBotWhatsappNewsletter] = useState(initialSavedSession?.botConfig?.whatsappNewsletter || "");
+  const [userBotWhatsappNumberChannel, setUserBotWhatsappNumberChannel] = useState(initialSavedSession?.botConfig?.whatsappNumberChannel || "");
+  const [userBotWhatsappMainChannel, setUserBotWhatsappMainChannel] = useState(initialSavedSession?.botConfig?.whatsappMainChannel || "");
+  const [userBotWhatsappPoweredBy, setUserBotWhatsappPoweredBy] = useState(initialSavedSession?.botConfig?.whatsappPoweredBy || "");
+  const [userBotWhatsappPhone, setUserBotWhatsappPhone] = useState(initialSavedSession?.botConfig?.whatsappPhone || "");
+  const [userBotWhatsappStatus, setUserBotWhatsappStatus] = useState(initialSavedSession?.botConfig?.whatsappStatus || "offline");
   const [whatsappConnecting, setWhatsappConnecting] = useState(false);
   const [whatsappVerifying, setWhatsappVerifying] = useState(false);
   const [whatsappPairingCode, setWhatsappPairingCode] = useState("");
@@ -156,6 +162,15 @@ export default function App() {
   const [adminBroadcastMessage, setAdminBroadcastMessage] = useState("");
   const [adminBroadcastLoading, setAdminBroadcastLoading] = useState(false);
   const [adminBroadcastStatus, setAdminBroadcastStatus] = useState<string | null>(null);
+
+  // Admin GitHub Configuration State
+  const [adminGithubToken, setAdminGithubToken] = useState("");
+  const [adminGithubRepo, setAdminGithubRepo] = useState("");
+  const [adminGithubPath, setAdminGithubPath] = useState("db.json");
+  const [adminGithubBranch, setAdminGithubBranch] = useState("main");
+  const [loadingGithubConfig, setLoadingGithubConfig] = useState(false);
+  const [savingGithubConfig, setSavingGithubConfig] = useState(false);
+  const [testingGithubConfig, setTestingGithubConfig] = useState(false);
 
   // ==========================================
   // 3. GEMINI SECURITY ANALYSIS
@@ -295,7 +310,31 @@ export default function App() {
       "Content-Type": "application/json",
       "x-app-request-signature": "IPRN-SMS-PANEL-SECURE-2026"
     };
-    const res = await fetch(url, { ...options, headers });
+    
+    // Ensure absolute URLs to avoid relative path resolution issues in iframe sandboxes
+    const absoluteUrl = url.startsWith("/") ? `${window.location.origin}${url}` : url;
+    
+    let attempts = 3;
+    let res: Response | null = null;
+    let lastError: any = null;
+    
+    while (attempts > 0) {
+      try {
+        res = await fetch(absoluteUrl, { ...options, headers });
+        break; // Success! Break retry loop
+      } catch (err: any) {
+        lastError = err;
+        attempts--;
+        if (attempts > 0) {
+          // Delay before retrying to allow the dev server to boot up or recover
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    
+    if (!res) {
+      throw lastError || new Error("Failed to fetch after multiple retries");
+    }
     
     // Polyfill res.json to handle offline/HTML errors gracefully
     const originalJson = res.json.bind(res);
@@ -433,6 +472,25 @@ export default function App() {
       console.error("Admin list error:", err);
     } finally {
       setLoadingAdminUsers(false);
+    }
+  };
+
+  const fetchAdminGithubConfig = async () => {
+    if (!isAdminAuthenticated) return;
+    setLoadingGithubConfig(true);
+    try {
+      const res = await secureFetch(`/api/admin/github-config?password=ranausman094`);
+      const data = await res.json();
+      if (data.success) {
+        setAdminGithubToken(data.token || "");
+        setAdminGithubRepo(data.repo || "");
+        setAdminGithubPath(data.path || "db.json");
+        setAdminGithubBranch(data.branch || "main");
+      }
+    } catch (err) {
+      console.error("Error fetching GitHub config:", err);
+    } finally {
+      setLoadingGithubConfig(false);
     }
   };
 
@@ -594,6 +652,7 @@ export default function App() {
     if (isAdminAuthenticated) {
       fetchAdminUsers();
       fetchAdminNumbers();
+      fetchAdminGithubConfig();
       const adminSyncTimer = setInterval(() => {
         fetchAdminUsers();
         fetchAdminNumbers();
@@ -940,6 +999,88 @@ export default function App() {
     setAdminPassword("");
     setAdminUsersList([]);
     showToast("Admin session cleared.");
+  };
+
+  const handleSaveGithubConfig = async (e: FormEvent) => {
+    e.preventDefault();
+    setSavingGithubConfig(true);
+    try {
+      const res = await secureFetch("/api/admin/github-config", {
+        method: "POST",
+        body: JSON.stringify({
+          password: "ranausman094",
+          token: adminGithubToken,
+          repo: adminGithubRepo,
+          path: adminGithubPath,
+          branch: adminGithubBranch
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("✅ GitHub Backup configuration saved successfully!");
+      } else {
+        showToast(`❌ Save failed: ${data.error}`);
+      }
+    } catch (err) {
+      showToast("❌ Network error saving GitHub configuration.");
+    } finally {
+      setSavingGithubConfig(false);
+    }
+  };
+
+  const handleUpdateUserExpiry = async (userId: string, expiryDate: string) => {
+    try {
+      const res = await secureFetch("/api/admin/users/update-date", {
+        method: "POST",
+        body: JSON.stringify({
+          password: "ranausman094",
+          userId,
+          expiryDate
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("✅ Expiry date updated successfully!");
+        const resUsers = await secureFetch("/api/admin/users", {
+          method: "POST",
+          body: JSON.stringify({ password: "ranausman094" })
+        });
+        const usersData = await resUsers.json();
+        if (usersData.success) {
+          setAdminUsersList(usersData.users);
+        }
+      } else {
+        showToast(`❌ Update failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      showToast(`❌ Error: ${err.message || err}`);
+    }
+  };
+
+  const handleTestGithubConfig = async () => {
+    setTestingGithubConfig(true);
+    try {
+      const res = await secureFetch("/api/admin/db/test-github", {
+        method: "POST",
+        body: JSON.stringify({
+          password: "ranausman094",
+          token: adminGithubToken,
+          repo: adminGithubRepo,
+          path: adminGithubPath,
+          branch: adminGithubBranch
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`🟢 ${data.message}`);
+      } else {
+        showToast(`🔴 Test failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      showToast(`🔴 Test error: ${err.message || err}`);
+    } finally {
+      setTestingGithubConfig(false);
+    }
   };
 
   // Admin global broadcast trigger
@@ -2060,12 +2201,41 @@ export default function App() {
                   {/* Bot settings form */}
                   <div className="bg-[#0e0f16] border border-gray-800 rounded-2xl p-6 space-y-6 shadow-xl flex flex-col justify-between">
                     <div>
+                      {/* Sub-tabs for Telegram / WhatsApp Bot */}
+                      <div className="flex bg-black/60 p-1 rounded-xl border border-gray-800/80 mb-6 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setBotActiveSubTab("telegram")}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 ${
+                            botActiveSubTab === "telegram"
+                              ? "bg-[#00ff99]/10 text-[#00ff99] border border-[#00ff99]/20"
+                              : "text-gray-400 hover:text-gray-200 border border-transparent"
+                          }`}
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          <span>Telegram Bot</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBotActiveSubTab("whatsapp")}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 ${
+                            botActiveSubTab === "whatsapp"
+                              ? "bg-[#00ff99]/10 text-[#00ff99] border border-[#00ff99]/20"
+                              : "text-gray-400 hover:text-gray-200 border border-transparent"
+                          }`}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          <span>WhatsApp Bot</span>
+                        </button>
+                      </div>
+
                       {/* Telegram Configuration View */}
-                      <form onSubmit={handleUpdateUserBot} className="space-y-4">
-                        <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                          <Send className="h-4 w-4 text-[#00ff99]" />
-                          Telegram API Configuration
-                        </h3>
+                      {botActiveSubTab === "telegram" && (
+                        <form onSubmit={handleUpdateUserBot} className="space-y-4">
+                          <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                            <Send className="h-4 w-4 text-[#00ff99]" />
+                            Telegram API Configuration
+                          </h3>
 
                         <div>
                           <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">🤖 Bot Token (from @BotFather):</label>
@@ -2246,6 +2416,189 @@ export default function App() {
                           {userBotUpdating ? "Saving Configuration..." : "Activate Telegram Bot Engine"}
                         </button>
                       </form>
+                      )}
+
+                      {/* WhatsApp Configuration View */}
+                      {botActiveSubTab === "whatsapp" && (
+                        <div className="space-y-4 animate-fade-in">
+                          <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                            <MessageCircle className="h-4 w-4 text-[#00ff99]" />
+                            WhatsApp Bot Configuration
+                          </h3>
+
+                          {/* Connection Status Section */}
+                          <div className="bg-black/40 border border-gray-800 p-4 rounded-xl space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-gray-400 uppercase font-semibold font-mono">⚡ BOT CONNECTION STATUS:</span>
+                              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase font-mono ${
+                                userBotWhatsappStatus === "active"
+                                  ? "bg-[#00ff99]/10 text-[#00ff99] border border-[#00ff99]/20"
+                                  : userBotWhatsappStatus === "connecting"
+                                  ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                  : "bg-red-500/10 text-red-400 border border-red-500/20"
+                              }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${
+                                  userBotWhatsappStatus === "active" ? "bg-[#00ff99] animate-pulse" : userBotWhatsappStatus === "connecting" ? "bg-amber-500 animate-pulse" : "bg-red-400"
+                                }`}></span>
+                                {userBotWhatsappStatus}
+                              </div>
+                            </div>
+
+                            {userBotWhatsappStatus === "active" ? (
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-300">
+                                  Linked Account: <strong className="text-white font-mono">+{userBotWhatsappPhone}</strong>
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={handleDisconnectWhatsapp}
+                                  className="w-full py-2 bg-red-950/40 hover:bg-red-950/80 border border-red-900/40 text-red-400 font-bold text-xs rounded-lg transition"
+                                >
+                                  Disconnect WhatsApp Session
+                                </button>
+                              </div>
+                            ) : whatsappConnecting ? (
+                              <div className="space-y-3">
+                                <div className="text-center py-2">
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#00ff99] mx-auto"></div>
+                                  <p className="text-[10px] text-gray-400 mt-2 font-mono">Generating secure pairing code...</p>
+                                </div>
+                                {whatsappPairingCode && (
+                                  <div className="bg-black border border-dashed border-[#00ff99]/30 rounded-xl p-4 text-center space-y-3">
+                                    <span className="text-[9px] text-gray-400 uppercase tracking-widest font-mono">YOUR WHATSAPP PAIRING CODE</span>
+                                    <div className="text-2xl font-mono font-bold tracking-[6px] text-[#00ff99] bg-[#00ff99]/5 py-2.5 rounded-lg border border-[#00ff99]/10">
+                                      {whatsappPairingCode}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(whatsappPairingCode);
+                                        showToast(`Copied code: ${whatsappPairingCode}`);
+                                      }}
+                                      className="text-[10px] text-[#00ff99] hover:underline font-semibold flex items-center justify-center gap-1 mx-auto font-mono"
+                                    >
+                                      <Copy className="h-3 w-3" /> Copy Code
+                                    </button>
+                                    <div className="text-left text-[10px] text-gray-400 space-y-1.5 pt-3 border-t border-gray-800/80">
+                                      <p className="font-bold text-white uppercase text-[9px]">How to Pair Device:</p>
+                                      <p>1. Open WhatsApp on your phone.</p>
+                                      <p>2. Tap Link a Device -&gt; Link with phone number instead.</p>
+                                      <p>3. Enter the 8-character pairing code above.</p>
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={confirmPairingWhatsapp}
+                                    disabled={whatsappVerifying}
+                                    className="flex-1 py-2 bg-[#00ff99]/10 border border-[#00ff99]/20 hover:bg-[#00ff99]/20 text-[#00ff99] font-bold text-xs rounded-lg transition"
+                                  >
+                                    {whatsappVerifying ? "Verifying..." : "🔄 I Have Paired It / Re-verify"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setWhatsappConnecting(false)}
+                                    className="px-3 py-2 bg-gray-900 border border-gray-800 text-gray-400 hover:text-white rounded-lg text-xs"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-[9px] text-gray-400 uppercase font-semibold font-mono block mb-1">📱 WhatsApp Number (With Country Code):</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. 967773663808"
+                                    value={userBotWhatsappPhone}
+                                    onChange={(e) => setUserBotWhatsappPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                                    className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#00ff99] transition text-gray-300"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handlePairWhatsapp}
+                                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#00ff99] to-[#008b45] hover:opacity-95 text-black font-bold text-xs transition"
+                                >
+                                  Link Bot via Pairing Code
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Configuration JIDs & Links */}
+                          <form onSubmit={handleUpdateUserBot} className="space-y-4 pt-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="whatsappEnabledCheck"
+                                checked={userBotWhatsappEnabled}
+                                onChange={(e) => setUserBotWhatsappEnabled(e.target.checked)}
+                                className="rounded border-gray-800 bg-black text-[#00ff99] focus:ring-0"
+                              />
+                              <label htmlFor="whatsappEnabledCheck" className="text-xs font-bold text-gray-300 select-none cursor-pointer">
+                                Enable WhatsApp Auto-Forwarding (Newsletter)
+                              </label>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">📢 Newsletter JID / ID:</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. 120363426165980012@newsletter"
+                                  value={userBotWhatsappNewsletter}
+                                  onChange={(e) => setUserBotWhatsappNewsletter(e.target.value)}
+                                  className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#00ff99] transition text-gray-300"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">🏷️ Brand Name (Powered By):</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Team Zero™ 🇵🇰"
+                                  value={userBotWhatsappPoweredBy}
+                                  onChange={(e) => setUserBotWhatsappPoweredBy(e.target.value)}
+                                  className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition text-gray-300"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">🔗 Numbers Channel Link:</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. https://whatsapp.com/channel/..."
+                                  value={userBotWhatsappNumberChannel}
+                                  onChange={(e) => setUserBotWhatsappNumberChannel(e.target.value)}
+                                  className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition text-gray-300"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">🔗 Main Channel Link:</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. https://whatsapp.com/channel/..."
+                                  value={userBotWhatsappMainChannel}
+                                  onChange={(e) => setUserBotWhatsappMainChannel(e.target.value)}
+                                  className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition text-gray-300"
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={userBotUpdating}
+                              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#00ff99] to-[#008b45] hover:opacity-95 text-black font-bold text-xs transition"
+                            >
+                              {userBotUpdating ? "Saving..." : "Save WhatsApp Configuration"}
+                            </button>
+                          </form>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-xs text-gray-500 bg-black/40 border border-gray-800/80 p-3.5 rounded-xl leading-relaxed font-mono mt-6">
@@ -3197,28 +3550,150 @@ export default function App() {
                             <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Password</th>
                             <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Bot Token</th>
                             <th className="px-4 py-2.5 text-center text-[10px] font-bold text-gray-400 uppercase">Subscribers</th>
+                            <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Registered</th>
+                            <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase">Expiry Date (Edit)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800/30">
-                          {adminUsersList.map((usr) => (
-                            <tr key={usr.id} className="hover:bg-black/20 font-mono">
-                              <td className="px-4 py-3 text-white font-bold">{usr.username}</td>
-                              <td className="px-4 py-3 text-gray-300">{usr.email}</td>
-                              <td className="px-4 py-3 text-yellow-500 select-all font-semibold">{usr.password || "N/A"}</td>
-                              <td className="px-4 py-3 text-gray-400 select-all max-w-[200px] truncate" title={usr.botConfig?.token}>
-                                {usr.botConfig?.token ? usr.botConfig.token : <span className="text-red-500 text-[10px]">No Token Set</span>}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="bg-[#00ff99]/10 text-[#00ff99] border border-[#00ff99]/20 font-bold px-2.5 py-0.5 rounded text-[10px]">
-                                  {(usr.subscribers || []).length}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                          {adminUsersList.map((usr) => {
+                            const regDate = usr.createdAt 
+                              ? new Date(usr.createdAt).toLocaleDateString()
+                              : (!isNaN(parseInt(usr.id.replace("user_", ""))) 
+                                  ? new Date(parseInt(usr.id.replace("user_", ""))).toLocaleDateString()
+                                  : "N/A");
+                            const expiryVal = usr.expiryDate ? usr.expiryDate.split("T")[0] : "";
+
+                            return (
+                              <tr key={usr.id} className="hover:bg-black/20 font-mono">
+                                <td className="px-4 py-3 text-white font-bold">{usr.username}</td>
+                                <td className="px-4 py-3 text-gray-300">{usr.email}</td>
+                                <td className="px-4 py-3 text-yellow-500 select-all font-semibold">{usr.password || "N/A"}</td>
+                                <td className="px-4 py-3 text-gray-400 select-all max-w-[150px] truncate" title={usr.botConfig?.token}>
+                                  {usr.botConfig?.token ? usr.botConfig.token : <span className="text-red-500 text-[10px]">No Token Set</span>}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="bg-[#00ff99]/10 text-[#00ff99] border border-[#00ff99]/20 font-bold px-2.5 py-0.5 rounded text-[10px]">
+                                    {(usr.subscribers || []).length}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-gray-400">{regDate}</td>
+                                <td className="px-4 py-3">
+                                  <input 
+                                    type="date"
+                                    defaultValue={expiryVal}
+                                    onBlur={(e) => {
+                                      if (e.target.value) {
+                                        handleUpdateUserExpiry(usr.id, new Date(e.target.value).toISOString());
+                                      }
+                                    }}
+                                    className="bg-black/50 text-white text-[11px] border border-gray-800 rounded px-2 py-1 focus:outline-none focus:border-[#00ff99] font-sans"
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
                   )}
+                </div>
+
+                {/* GitHub Cloud Database Backup & Sync Settings */}
+                <div className="bg-[#0e0f16] border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+                  <div className="flex justify-between items-center border-b border-gray-800/60 pb-3">
+                    <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                      <Database className="h-4 w-4 text-[#00ff99]" />
+                      GitHub Cloud Database Auto-Sync (Bandoobast)
+                    </h3>
+                    <span className="bg-[#00ff99]/10 text-[#00ff99] border border-[#00ff99]/20 font-bold px-2.5 py-0.5 rounded text-[10px] font-mono">
+                      {adminGithubToken && adminGithubRepo ? "🟢 Configured" : "⚪ Off"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    Apna <code className="text-[#00ff99] bg-black px-1 rounded">db.json</code> database ko 100% safe aur automatic save karne ke liye yahan GitHub settings configure karein. Heroku/Vercel restart hone par bhi aapke bots aur users ka koi bhi data delete nahi hoga!
+                  </p>
+                  
+                  <form onSubmit={handleSaveGithubConfig} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">🔑 GitHub Personal Access Token (Token):</label>
+                        <div className="relative">
+                          <input
+                            type={showPass ? "text" : "password"}
+                            placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            value={adminGithubToken}
+                            onChange={(e) => setAdminGithubToken(e.target.value)}
+                            className="w-full bg-black border border-gray-800 rounded-xl pl-3 pr-10 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition font-mono text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPass(!showPass)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                          >
+                            {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">📁 GitHub Repository (e.g. username/repo):</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. teamzero586/otp-database-sync"
+                          value={adminGithubRepo}
+                          onChange={(e) => setAdminGithubRepo(e.target.value)}
+                          className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition font-mono text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">📄 Database File Path in Repo:</label>
+                        <input
+                          type="text"
+                          placeholder="db.json"
+                          value={adminGithubPath}
+                          onChange={(e) => setAdminGithubPath(e.target.value)}
+                          className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition font-mono text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] text-gray-400 uppercase font-semibold block mb-1">🌿 Repository Branch:</label>
+                        <input
+                          type="text"
+                          placeholder="main"
+                          value={adminGithubBranch}
+                          onChange={(e) => setAdminGithubBranch(e.target.value)}
+                          className="w-full bg-black border border-gray-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#00ff99] transition font-mono text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2.5 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleTestGithubConfig}
+                        disabled={testingGithubConfig || !adminGithubToken || !adminGithubRepo}
+                        className="flex-1 py-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 font-bold text-xs hover:bg-gray-800 transition disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${testingGithubConfig ? "animate-spin" : ""}`} />
+                        {testingGithubConfig ? "Testing Connection..." : "Test GitHub Connection"}
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={savingGithubConfig}
+                        className="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#00ff99] to-[#008b45] hover:opacity-95 text-black font-bold text-xs transition disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        {savingGithubConfig ? "Saving Config..." : "Save GitHub Settings"}
+                      </button>
+                    </div>
+
+                    <div className="bg-blue-950/20 border border-blue-900/30 rounded-xl p-3 text-[11px] text-blue-400 leading-relaxed font-sans">
+                      💡 <strong>Heroku Tip:</strong> For complete permanence across deployments/rebuilds on Heroku, you can also add these as <strong>Config Vars</strong> on Heroku Dashboard: <code className="bg-black/40 px-1 rounded text-white">GITHUB_TOKEN</code>, <code className="bg-black/40 px-1 rounded text-white">GITHUB_REPO</code>, <code className="bg-black/40 px-1 rounded text-white">GITHUB_PATH</code>, and <code className="bg-black/40 px-1 rounded text-white">GITHUB_BRANCH</code>.
+                    </div>
+                  </form>
                 </div>
 
                 {/* WhatsApp OTP Forwarding Bot Guide and Architecture Section */}

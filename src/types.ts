@@ -54,6 +54,8 @@ export interface UserAccount {
   password?: string; // Only returned if authenticated or to super-admin
   botConfig: BotConfig;
   subscribers: Subscriber[];
+  createdAt?: string;
+  expiryDate?: string;
 }
 
 export interface PanelStats {

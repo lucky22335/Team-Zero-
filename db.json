@@ -588,6 +588,14 @@
   ],
   "manualSms": [
     {
+      "timestamp": "2026-07-12T16:55:41.000Z",
+      "number": "258875065512",
+      "service": "WhatsApp",
+      "message": "# Kode WhatsApp Business 339-687\nJangan bagikan kode ini dengan orang lain\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
       "timestamp": "2026-07-12T18:14:06.000Z",
       "number": "258873143273",
       "service": "WhatsApp",
@@ -1376,14 +1384,6 @@
       "number": "258875078059",
       "service": "WhatsApp",
       "message": "# Your WhatsApp Business code 193-614\nDont share this code with others\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T17:00:38.000Z",
-      "number": "258873394027",
-      "service": "WhatsApp",
-      "message": "# Kode WhatsApp Business 873-298\nJangan bagikan kode ini dengan orang lain\nrJbAXP1KV",
       "country": "Mozambique",
       "source": "API 3"
     }

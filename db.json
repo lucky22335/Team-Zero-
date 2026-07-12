@@ -57,6 +57,14 @@
       ],
       "otpHistory": [
         {
+          "timestamp": "2026-07-12T18:14:00.000Z",
+          "number": "258872810296",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business code 497-608\nDont share this code with others\nrJbAXP1KV",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
           "timestamp": "2026-07-12T18:12:47.000Z",
           "number": "967779010869",
           "service": "Imo",
@@ -285,14 +293,6 @@
           "number": "258872294561",
           "service": "WhatsApp",
           "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 143-440\n4sgLq1p5sV6",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T18:00:21.000Z",
-          "number": "258872413928",
-          "service": "FACEBOOK",
-          "message": "# 255679 adalah kode Facebook Anda H29QFsn4Sr",
           "country": "Mozambique",
           "source": "API 3"
         }
@@ -586,6 +586,14 @@
     }
   ],
   "manualSms": [
+    {
+      "timestamp": "2026-07-12T18:14:00.000Z",
+      "number": "258872810296",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business code 497-608\nDont share this code with others\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
     {
       "timestamp": "2026-07-12T18:12:47.000Z",
       "number": "967779010869",
@@ -1375,14 +1383,6 @@
       "number": "258872249558",
       "service": "WhatsApp",
       "message": "# Akun WhatsApp Business Anda sedang didaftarkan di perangkat baru\n\nJangan bagikan kode dengan siapa pun\nKode WhatsApp Business Anda 894-852\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:55:41.000Z",
-      "number": "258875065512",
-      "service": "WhatsApp",
-      "message": "# Kode WhatsApp Business 339-687\nJangan bagikan kode ini dengan orang lain\nrJbAXP1KV",
       "country": "Mozambique",
       "source": "API 3"
     }

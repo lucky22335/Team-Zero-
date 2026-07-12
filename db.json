@@ -57,6 +57,46 @@
       ],
       "otpHistory": [
         {
+          "timestamp": "2026-07-12T18:12:33.000Z",
+          "number": "258874932440",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 321-574\n4sgLq1p5sV6",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T18:11:32.000Z",
+          "number": "258872811485",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 782-802\nrJbAXP1KV",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T18:10:30.000Z",
+          "number": "258873469501",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 157-539\n4sgLq1p5sV6",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T18:10:27.000Z",
+          "number": "258873325443",
+          "service": "Imo",
+          "message": "رمز التحقق 3945\nتجنب مطلقًا مشاركته مع أي شخص آخر",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
+          "timestamp": "2026-07-12T18:10:22.000Z",
+          "number": "258873521809",
+          "service": "WhatsApp",
+          "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 389-122\nrJbAXP1KV",
+          "country": "Mozambique",
+          "source": "API 3"
+        },
+        {
           "timestamp": "2026-07-12T18:09:31.000Z",
           "number": "584265769881",
           "service": "WhatsApp",
@@ -253,46 +293,6 @@
           "number": "258873263089",
           "service": "WhatsApp",
           "message": "# Your WhatsApp Business code 472-624\nDont share this code with others\nrJbAXP1KV",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T17:58:08.000Z",
-          "number": "50940314744",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp Business code 248-273\nDont share this code with others\nrJbAXP1KV",
-          "country": "Indonesia",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T17:57:56.000Z",
-          "number": "258875119352",
-          "service": "WhatsApp",
-          "message": "Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 888-478",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T17:57:54.000Z",
-          "number": "258873440390",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 638-664\n4sgLq1p5sV6",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T17:56:46.000Z",
-          "number": "258875079218",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp Business code 801-526\nDont share this code with others\nrJbAXP1KV",
-          "country": "Mozambique",
-          "source": "API 3"
-        },
-        {
-          "timestamp": "2026-07-12T17:48:32.000Z",
-          "number": "258874876684",
-          "service": "WhatsApp",
-          "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 360-011\nrJbAXP1KV",
           "country": "Mozambique",
           "source": "API 3"
         }
@@ -544,7 +544,12 @@
     "258873535667",
     "258873064645",
     "584168083116",
-    "584265769881"
+    "584265769881",
+    "258873521809",
+    "258873325443",
+    "258873469501",
+    "258872811485",
+    "258874932440"
   ],
   "manualNumbers": [
     {
@@ -579,6 +584,46 @@
     }
   ],
   "manualSms": [
+    {
+      "timestamp": "2026-07-12T18:12:33.000Z",
+      "number": "258874932440",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 321-574\n4sgLq1p5sV6",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T18:11:32.000Z",
+      "number": "258872811485",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 782-802\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T18:10:30.000Z",
+      "number": "258873469501",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 157-539\n4sgLq1p5sV6",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T18:10:27.000Z",
+      "number": "258873325443",
+      "service": "Imo",
+      "message": "رمز التحقق 3945\nتجنب مطلقًا مشاركته مع أي شخص آخر",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
+    {
+      "timestamp": "2026-07-12T18:10:22.000Z",
+      "number": "258873521809",
+      "service": "WhatsApp",
+      "message": "# Your WhatsApp Business account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp Business code 389-122\nrJbAXP1KV",
+      "country": "Mozambique",
+      "source": "API 3"
+    },
     {
       "timestamp": "2026-07-12T18:09:31.000Z",
       "number": "584265769881",
@@ -1336,46 +1381,6 @@
       "number": "258868050004",
       "service": "WhatsApp",
       "message": "# Your WhatsApp account is being registered on a new device\n\nDo not share this code with anyone\nYour WhatsApp code 467-347\n4sgLq1p5sV6",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:52:42.000Z",
-      "number": "258872603482",
-      "service": "WhatsApp",
-      "message": "# Akun WhatsApp Business Anda sedang didaftarkan di perangkat baru\n\nJangan bagikan kode dengan siapa pun\nKode WhatsApp Business Anda 601-862\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:51:17.000Z",
-      "number": "258873139694",
-      "service": "WhatsApp",
-      "message": "# Akun WhatsApp Business Anda sedang didaftarkan di perangkat baru\n\nJangan bagikan kode dengan siapa pun\nKode WhatsApp Business Anda 904-107\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:49:57.000Z",
-      "number": "258868311297",
-      "service": "WhatsApp",
-      "message": "# Your WhatsApp Business code 130-608\nDont share this code with others\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:49:44.000Z",
-      "number": "258873590875",
-      "service": "WhatsApp",
-      "message": "# Your WhatsApp Business code 782-685\nDont share this code with others\nrJbAXP1KV",
-      "country": "Mozambique",
-      "source": "API 3"
-    },
-    {
-      "timestamp": "2026-07-12T16:49:22.000Z",
-      "number": "258868031589",
-      "service": "WhatsApp",
-      "message": "# Your WhatsApp code 447-099\nDont share this code with others\n4sgLq1p5sV6",
       "country": "Mozambique",
       "source": "API 3"
     }
